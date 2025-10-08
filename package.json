@@ -1,0 +1,53 @@
+{
+  "name": "preact-spatial-navigation",
+  "version": "0.1.0",
+  "description": "A reusable Preact library for TV-style spatial navigation, powered by js-spatial-navigation",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:lib && npm run build:types",
+    "build:lib": "vite build --mode lib",
+    "build:types": "tsc --project tsconfig.lib.json --declaration --emitDeclarationOnly --outDir dist",
+    "build:demo": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "preact",
+    "spatial-navigation",
+    "tv",
+    "remote-control",
+    "focus-management",
+    "accessibility"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "preact": "^10.0.0"
+  },
+  "dependencies": {
+    "js-spatial-navigation": "^1.0.1",
+    "mitt": "^3.0.1"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "@types/node": "^24.6.0",
+    "preact": "^10.27.2",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.7"
+  }
+}
