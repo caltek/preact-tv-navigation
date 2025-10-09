@@ -1,4 +1,3 @@
-import type { JSX } from 'preact';
 
 /**
  * Options for accessibility props

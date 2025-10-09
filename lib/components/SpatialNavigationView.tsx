@@ -1,25 +1,32 @@
-import type { SpatialNavigationViewProps } from '../types';
+import type { ComponentChildren, JSX } from 'preact';
+import { forwardRef } from 'preact/compat';
+import { SpatialNavigationNode } from './SpatialNavigationNode';
+import type { SpatialNavigationNodeRef } from '../types';
 
-/**
- * SpatialNavigationView - Simple wrapper around SpatialNavigationNode
- * Used to create non-focusable container nodes with specific orientation
- */
-export function SpatialNavigationView({
-  direction = 'horizontal',
-  alignInGrid = false,
-  children,
-}: SpatialNavigationViewProps) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: direction === 'horizontal' ? 'row' : 'column',
-      }}
-      data-orientation={direction}
-      data-align-in-grid={alignInGrid}
-    >
-      {children}
-    </div>
-  );
-}
+type Props = {
+  children: ComponentChildren;
+  style?: JSX.CSSProperties;
+  direction: 'horizontal' | 'vertical';
+  alignInGrid?: boolean;
+};
 
+export const SpatialNavigationView = forwardRef<SpatialNavigationNodeRef, Props>(
+  ({ direction = 'horizontal', alignInGrid = false, children, style }: Props, ref) => {
+    const flexDirection = direction === 'horizontal' ? 'row' : 'column';
+    
+    return (
+      <SpatialNavigationNode orientation={direction} alignInGrid={alignInGrid} ref={ref}>
+        <div
+          style={{
+            ...style,
+            display: 'flex',
+            flexDirection,
+          }}
+        >
+          {children}
+        </div>
+      </SpatialNavigationNode>
+    );
+  },
+);
+SpatialNavigationView.displayName = 'SpatialNavigationView';

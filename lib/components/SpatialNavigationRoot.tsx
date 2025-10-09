@@ -1,209 +1,75 @@
-import { createContext } from 'preact';
-import { useContext, useEffect, useState, useCallback, useRef } from 'preact/hooks';
-import type { SpatialNavigationRootProps, SpatialNavigationContextValue, Direction } from '../types';
-import { navigationEventBus } from '../utils/eventBus';
-import { generateSectionId } from '../utils/helpers';
+import type { ComponentChildren } from 'preact';
+import { useEffect, useRef } from 'preact/hooks';
+import { ParentIdContext } from '../context/ParentIdContext';
+import { SpatialNavigatorContext } from '../context/SpatialNavigatorContext';
+import { useCreateSpatialNavigator } from '../hooks/useCreateSpatialNavigator';
+import { useRemoteControl } from '../hooks/useRemoteControl';
+import type { OnDirectionHandledWithoutMovement } from '../spatial-navigation/SpatialNavigator';
+import { LockSpatialNavigationContext, useIsLocked } from '../context/LockSpatialNavigationContext';
+import { IsRootActiveContext } from '../context/IsRootActiveContext';
 
-// @ts-ignore - js-spatial-navigation doesn't have TypeScript definitions
-import SpatialNavigation from 'js-spatial-navigation';
+const ROOT_ID = 'root';
 
-/**
- * Context for spatial navigation (internal)
- */
-const SpatialNavigationContext = createContext<SpatialNavigationContextValue | null>(null);
+export type SpatialNavigationRootProps = {
+  /**
+   * Determines if the spatial navigation is active.
+   * If false, the spatial navigation will be locked, and no nodes can be focused.
+   * This is useful to handle a multi page app: you can disable the non-focused pages' spatial navigation roots.
+   *
+   * Note: this is a little redundant with the lock system, but it's useful to have a way to disable the spatial navigation from above AND from below.
+   */
+  isActive?: boolean;
+  /**
+   * Called when you're reaching a border of the navigator.
+   * A use case for this would be the implementation of a side menu
+   * that's shared between pages. You can have a separate navigator
+   * for your side menu, which would be common across pages, and you'd
+   * make this menu active when you reach the left side of your page navigator.
+   */
+  onDirectionHandledWithoutMovement?: OnDirectionHandledWithoutMovement;
+  children: ComponentChildren;
+};
 
-/**
- * Root component for spatial navigation
- * Manages the global navigation state and provides context to child components
- */
-export function SpatialNavigationRoot({ 
-  children, 
-  config = {},
+export const SpatialNavigationRoot = ({
   isActive = true,
-  onDirectionHandledWithoutMovement,
-}: SpatialNavigationRootProps) {
-  const [initialized, setInitialized] = useState(false);
-  const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
-  const [rootActive, setRootActive] = useState(isActive);
-  const previousIsActive = useRef(isActive);
+  onDirectionHandledWithoutMovement = () => undefined,
+  children,
+}: SpatialNavigationRootProps) => {
+  // We can't follow the react philosophy here: we can't recreate a navigator if this function changes
+  // so we'll have to store its ref and update the ref if there is a new value to this function
+  const onDirectionHandledWithoutMovementRef = useRef<OnDirectionHandledWithoutMovement>(
+    () => undefined,
+  );
+  // Update the ref at every render
+  onDirectionHandledWithoutMovementRef.current = onDirectionHandledWithoutMovement;
 
-  // Handle isActive changes
+  const spatialNavigator = useCreateSpatialNavigator({
+    onDirectionHandledWithoutMovementRef,
+  });
+
+  const { isLocked, lockActions } = useIsLocked();
+
+  const isRootActive = isActive && !isLocked;
+  useRemoteControl({ spatialNavigator, isActive: isRootActive });
+
   useEffect(() => {
-    if (previousIsActive.current !== isActive) {
-      if (isActive) {
-        SpatialNavigation.resume();
-        setRootActive(true);
-      } else {
-        SpatialNavigation.pause();
-        setRootActive(false);
-      }
-      previousIsActive.current = isActive;
-    }
-  }, [isActive]);
-
-  useEffect(() => {
-    // Initialize SpatialNavigation
-    SpatialNavigation.init();
-
-    // Set default configuration
-    SpatialNavigation.set({
-      selector: '.focusable',
-      straightOnly: false,
-      straightOverlapThreshold: 0.5,
-      rememberSource: false,
-      disabled: false,
-      defaultElement: '',
-      enterTo: 'last-focused',
-      leaveFor: null,
-      restrict: 'self-first',
-      tabIndexIgnoreList: 'a, input, select, textarea, button, iframe, [contentEditable=true]',
-      navigableFilter: null,
-      ...config,
-    });
-
-    // Add default section for elements not in specific sections
-    SpatialNavigation.add('', {
-      selector: '.focusable',
-      restrict: 'self-first', // Try to stay within section first, at boundary allow section exit
-      enterTo: 'last-focused',
-    });
-
-    // Don't call makeFocusable('') as it causes js-spatial-navigation to auto-create "section-1"
-    // The selector: '.focusable' above will automatically pick up all elements with that class
-
-    setInitialized(true);
-
-    // Set up event listeners for js-spatial-navigation events
-    const handleFocus = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      navigationEventBus.emit('focus', customEvent.detail);
-      
-      if (customEvent.detail?.sectionId) {
-        setCurrentSectionId(customEvent.detail.sectionId);
-      }
-    };
-
-    const handleBlur = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      navigationEventBus.emit('blur', customEvent.detail);
-    };
-
-    const handleWillMove = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      navigationEventBus.emit('willmove', customEvent.detail);
-    };
-
-    const handleNavigateFailed = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const detail = customEvent.detail;
-      
-      navigationEventBus.emit('navigatefailed', detail);
-      
-      // Call onDirectionHandledWithoutMovement when navigation fails (border reached)
-      if (onDirectionHandledWithoutMovement && detail?.direction) {
-        onDirectionHandledWithoutMovement(detail.direction as Direction);
-      }
-    };
-
-    const handleEnterDown = () => {
-      navigationEventBus.emit('enterdown', undefined);
-    };
-
-    const handleEnterUp = () => {
-      navigationEventBus.emit('enterup', undefined);
-    };
-
-    // Bind to document for spatial navigation events
-    document.addEventListener('sn:focused', handleFocus);
-    document.addEventListener('sn:unfocused', handleBlur);
-    document.addEventListener('sn:willmove', handleWillMove);
-    document.addEventListener('sn:navigatefailed', handleNavigateFailed);
-    document.addEventListener('sn:enter-down', handleEnterDown);
-    document.addEventListener('sn:enter-up', handleEnterUp);
-
-    // Apply initial active state
-    if (!isActive) {
-      SpatialNavigation.pause();
-      setRootActive(false);
-    }
-
-    // Cleanup on unmount
-    return () => {
-      document.removeEventListener('sn:focused', handleFocus);
-      document.removeEventListener('sn:unfocused', handleBlur);
-      document.removeEventListener('sn:willmove', handleWillMove);
-      document.removeEventListener('sn:navigatefailed', handleNavigateFailed);
-      document.removeEventListener('sn:enter-down', handleEnterDown);
-      document.removeEventListener('sn:enter-up', handleEnterUp);
-      
-      navigationEventBus.clear();
-      SpatialNavigation.uninit();
-    };
-  }, []);
-
-  const registerSection = useCallback((sectionConfig: any): string => {
-    const sectionId = sectionConfig.id || generateSectionId('section');
-    
-    SpatialNavigation.add(sectionId, {
-      selector: '.focusable',
-      defaultElement: sectionConfig.defaultElement || '',
-      enterTo: sectionConfig.enterTo || 'last-focused',
-      restrict: sectionConfig.restrict || 'none', // Default to 'none' for seamless navigation
-      disabled: sectionConfig.disabled || false,
-    });
-
-    return sectionId;
-  }, []);
-
-  const unregisterSection = useCallback((sectionId: string): void => {
-    SpatialNavigation.remove(sectionId);
-  }, []);
-
-  const focusSection = useCallback((sectionId: string): void => {
-    SpatialNavigation.focus(sectionId);
-  }, []);
-
-  const pause = useCallback((): void => {
-    SpatialNavigation.pause();
-    setRootActive(false);
-  }, []);
-
-  const resume = useCallback((): void => {
-    SpatialNavigation.resume();
-    setRootActive(true);
-  }, []);
-
-  const contextValue: SpatialNavigationContextValue = {
-    initialized,
-    currentSectionId,
-    registerSection,
-    unregisterSection,
-    focusSection,
-    pause,
-    resume,
-    rootActive: rootActive, // Always provide boolean value
-  };
+    spatialNavigator.registerNode(ROOT_ID, { orientation: 'vertical' });
+    return () => spatialNavigator.unregisterNode(ROOT_ID);
+  }, [spatialNavigator]);
 
   return (
-    <SpatialNavigationContext.Provider value={contextValue}>
-      {children}
-    </SpatialNavigationContext.Provider>
+    <SpatialNavigatorContext.Provider value={spatialNavigator}>
+      <LockSpatialNavigationContext.Provider value={lockActions}>
+        <IsRootActiveContext.Provider value={isRootActive}>
+          <ParentIdContext.Provider value={ROOT_ID}>{children}</ParentIdContext.Provider>
+        </IsRootActiveContext.Provider>
+      </LockSpatialNavigationContext.Provider>
+    </SpatialNavigatorContext.Provider>
   );
-}
-
-/**
- * Hook to access spatial navigation context
- */
-export function useSpatialNavigationContext(): SpatialNavigationContextValue {
-  const context = useContext(SpatialNavigationContext);
-  
-  if (!context) {
-    throw new Error('useSpatialNavigationContext must be used within SpatialNavigationRoot');
-  }
-  
-  return context;
-}
+};
 
 // Backward compatibility: export as SpatialNavigationProvider
 export { SpatialNavigationRoot as SpatialNavigationProvider };
 
+// Export hook for accessing context
+export { useSpatialNavigatorContext } from '../context/SpatialNavigatorContext';

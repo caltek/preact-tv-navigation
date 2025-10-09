@@ -1,17 +1,22 @@
 import { createContext } from 'preact';
-import { useContext, useState, useEffect } from 'preact/hooks';
-import type { JSX } from 'preact';
+import { useContext, useState, useEffect, useRef } from 'preact/hooks';
+import type { JSX, Ref } from 'preact';
 
 /**
  * Device types supported by the library
+ * remoteKeys - using remote control with arrow keys
+ * remotePointer - using remote control with pointer (e.g., Magic Remote)
  */
-export type DeviceType = 'tv' | 'desktop' | 'mobile' | 'tablet';
+export type DeviceType = 'remoteKeys' | 'remotePointer' | 'tv' | 'desktop' | 'mobile' | 'tablet';
 
 /**
  * Device type context value
  */
 export interface DeviceTypeContextValue {
   deviceType: DeviceType;
+  deviceTypeRef: Ref<DeviceType>;
+  setDeviceType: (deviceType: DeviceType) => void;
+  setScrollingIntervalId: (id: NodeJS.Timeout | null) => void;
   isTv: boolean;
   isDesktop: boolean;
   isMobile: boolean;
@@ -84,6 +89,13 @@ export function SpatialNavigationDeviceTypeProvider({
   const [deviceType, setDeviceType] = useState<DeviceType>(
     providedDeviceType || detectDeviceType()
   );
+  const deviceTypeRef = useRef<DeviceType>(deviceType);
+  const [scrollingIntervalId, setScrollingIntervalId] = useState<NodeJS.Timeout | null>(null);
+
+  // Update ref when state changes
+  useEffect(() => {
+    deviceTypeRef.current = deviceType;
+  }, [deviceType]);
 
   // Re-detect on window resize (for responsive behavior)
   useEffect(() => {
@@ -102,6 +114,9 @@ export function SpatialNavigationDeviceTypeProvider({
 
   const contextValue: DeviceTypeContextValue = {
     deviceType,
+    deviceTypeRef,
+    setDeviceType,
+    setScrollingIntervalId,
     isTv: deviceType === 'tv',
     isDesktop: deviceType === 'desktop',
     isMobile: deviceType === 'mobile',
@@ -139,8 +154,16 @@ export function useDeviceType(): DeviceTypeContextValue {
   if (!context) {
     // Return default values if not within provider
     const defaultDeviceType = detectDeviceType();
+    const deviceTypeRef = useRef<DeviceType>(defaultDeviceType);
     return {
       deviceType: defaultDeviceType,
+      deviceTypeRef,
+      setDeviceType: () => {
+        console.warn('setDeviceType called outside of SpatialNavigationDeviceTypeProvider');
+      },
+      setScrollingIntervalId: () => {
+        console.warn('setScrollingIntervalId called outside of SpatialNavigationDeviceTypeProvider');
+      },
       isTv: defaultDeviceType === 'tv',
       isDesktop: defaultDeviceType === 'desktop',
       isMobile: defaultDeviceType === 'mobile',

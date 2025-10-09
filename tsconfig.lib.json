@@ -1,21 +1,24 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2015",
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
     "moduleResolution": "node",
     "skipLibCheck": true,
     "strict": true,
     "verbatimModuleSyntax": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "outDir": "./dist",
     "rootDir": "./lib",
-    "noEmit": false
+    "noEmit": false,
+    "typeRoots": ["./node_modules/@types", "./@types"]
   },
   "include": ["lib/**/*"],
   "exclude": ["node_modules", "dist", "src"]

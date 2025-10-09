@@ -1,80 +1,75 @@
-import { useEffect, useRef } from 'preact/hooks';
-import type { SpatialNavigationScrollViewProps } from '../types';
-import { navigationEventBus } from '../utils/eventBus';
-import { SpatialNavigationNode } from './SpatialNavigationNode';
+import { useCallback, useRef } from 'preact/hooks';
+import type { Ref, ComponentChildren, JSX } from 'preact';
+import {
+  ParentScrollContext as SpatialNavigatorParentScrollContext,
+  useSpatialNavigatorParentScroll,
+  type ScrollToNodeCallback,
+} from '../context/ParentScrollContext';
 
-/**
- * SpatialNavigationScrollView - Auto-scrolling container
- * Automatically scrolls to keep focused elements visible
- */
+type Props = {
+  horizontal?: boolean;
+  /**
+   * Use this offset to prevent the element from sticking too closely to the edges of the screen during scrolling.
+   * This is a margin in pixels.
+   */
+  offsetFromStart?: number;
+  children: ComponentChildren;
+  style?: JSX.CSSProperties;
+  /** Arrow that will show up inside the arrowContainer */
+  descendingArrow?: JSX.Element;
+  /** Arrow that will show up inside the arrowContainer */
+  ascendingArrow?: JSX.Element;
+  /** Style props for the arrow container, basically the area hoverable that triggers a scroll  */
+  descendingArrowContainerStyle?: JSX.CSSProperties;
+  /** Style props for the arrow container, basically the area hoverable that triggers a scroll  */
+  ascendingArrowContainerStyle?: JSX.CSSProperties;
+  /** Number of pixels scrolled every 10ms - only when using web cursor pointer to scroll */
+  pointerScrollSpeed?: number;
+  /** Toggles the native scrolling version of the scroll view instead of the CSS scroll */
+  useNativeScroll?: boolean;
+  /** Configures the scroll duration in the case of CSS scroll */
+  scrollDuration?: number;
+  testID?: string;
+};
+
 export function SpatialNavigationScrollView({
   horizontal = false,
+  style,
   offsetFromStart = 0,
-  style = {},
   children,
   ascendingArrow,
-  ascendingArrowContainerStyle = {},
+  ascendingArrowContainerStyle,
   descendingArrow,
-  descendingArrowContainerStyle = {},
+  descendingArrowContainerStyle,
   pointerScrollSpeed = 10,
   useNativeScroll = false,
-}: SpatialNavigationScrollViewProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const ascendingIntervalRef = useRef<number | null>(null);
-  const descendingIntervalRef = useRef<number | null>(null);
+  scrollDuration = 200,
+  testID,
+}: Props) {
+  const { scrollToNodeIfNeeded: makeParentsScrollToNodeIfNeeded } =
+    useSpatialNavigatorParentScroll();
+  const scrollViewRef = useRef<HTMLDivElement>(null);
 
-  // Handle focus events to scroll focused element into view
-  useEffect(() => {
-    const handleFocus = (_detail: any) => {
-      if (!scrollContainerRef.current) return;
+  const scrollToNode: ScrollToNodeCallback = useCallback(
+    (newlyFocusedElementRef, additionalOffset = 0) => {
+      if (!scrollViewRef.current) return;
+      if (!newlyFocusedElementRef) return;
 
-      const focusedElement = document.activeElement as HTMLElement;
-      if (!focusedElement) return;
+      // Get the element from the ref
+      const element = typeof newlyFocusedElementRef === 'object' && 'current' in newlyFocusedElementRef
+        ? newlyFocusedElementRef.current
+        : null;
 
-      // Check if focused element is within this scroll container
-      if (!scrollContainerRef.current.contains(focusedElement)) return;
+      if (!element) return;
 
-      // Use CSS scrollIntoView for smooth scrolling (default)
-      if (!useNativeScroll) {
-        try {
-          focusedElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'nearest',
-          });
-
-          // Apply offsetFromStart by adjusting scroll position
-          if (offsetFromStart > 0) {
-            setTimeout(() => {
-              if (scrollContainerRef.current) {
-                if (horizontal) {
-                  scrollContainerRef.current.scrollLeft -= offsetFromStart;
-                } else {
-                  scrollContainerRef.current.scrollTop -= offsetFromStart;
-                }
-              }
-            }, 100);
-          }
-        } catch (error) {
-          // Fallback to manual scroll if scrollIntoView fails
-          scrollIntoViewManually(focusedElement);
-        }
-      } else {
-        // Use native JS scroll
-        scrollIntoViewManually(focusedElement);
-      }
-    };
-
-    const scrollIntoViewManually = (element: HTMLElement) => {
-      if (!scrollContainerRef.current) return;
-
-      const container = scrollContainerRef.current;
+      // Calculate position relative to scroll container
+      const container = scrollViewRef.current;
       const elementRect = element.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
 
       if (horizontal) {
         const elementLeft = elementRect.left - containerRect.left + container.scrollLeft;
-        const targetScroll = elementLeft - offsetFromStart;
+        const targetScroll = elementLeft - (offsetFromStart + additionalOffset);
         
         container.scrollTo({
           left: targetScroll,
@@ -82,129 +77,75 @@ export function SpatialNavigationScrollView({
         });
       } else {
         const elementTop = elementRect.top - containerRect.top + container.scrollTop;
-        const targetScroll = elementTop - offsetFromStart;
+        const targetScroll = elementTop - (offsetFromStart + additionalOffset);
         
         container.scrollTo({
           top: targetScroll,
           behavior: 'smooth',
         });
       }
-    };
 
-    navigationEventBus.on('focus', handleFocus);
+      // Propagate to parent scrollviews if nested
+      makeParentsScrollToNodeIfNeeded(newlyFocusedElementRef, additionalOffset);
+    },
+    [makeParentsScrollToNodeIfNeeded, horizontal, offsetFromStart],
+  );
 
-    return () => {
-      navigationEventBus.off('focus', handleFocus);
-    };
-  }, [horizontal, offsetFromStart, useNativeScroll]);
-
-  // Handle pointer scroll arrows
-  const startScrolling = (direction: 'ascending' | 'descending') => {
-    const intervalId = window.setInterval(() => {
-      if (scrollContainerRef.current) {
-        const scrollAmount = pointerScrollSpeed;
-        
-        if (horizontal) {
-          scrollContainerRef.current.scrollLeft += 
-            direction === 'descending' ? scrollAmount : -scrollAmount;
-        } else {
-          scrollContainerRef.current.scrollTop += 
-            direction === 'descending' ? scrollAmount : -scrollAmount;
-        }
-      }
-    }, 10); // Scroll every 10ms
-
-    if (direction === 'ascending') {
-      ascendingIntervalRef.current = intervalId;
-    } else {
-      descendingIntervalRef.current = intervalId;
-    }
-  };
-
-  const stopScrolling = (direction: 'ascending' | 'descending') => {
-    const intervalRef = direction === 'ascending' 
-      ? ascendingIntervalRef.current 
-      : descendingIntervalRef.current;
-    
-    if (intervalRef !== null) {
-      clearInterval(intervalRef);
-      
-      if (direction === 'ascending') {
-        ascendingIntervalRef.current = null;
-      } else {
-        descendingIntervalRef.current = null;
-      }
-    }
-  };
-
-  // Clean up intervals on unmount
-  useEffect(() => {
-    return () => {
-      if (ascendingIntervalRef.current) clearInterval(ascendingIntervalRef.current);
-      if (descendingIntervalRef.current) clearInterval(descendingIntervalRef.current);
-    };
-  }, []);
-
-  const containerStyle: any = {
-    overflow: 'hidden', // Clip items that extend beyond container bounds
+  const containerStyle: JSX.CSSProperties = {
     position: 'relative',
+    width: '100%',
+    height: '100%',
     ...style,
   };
 
-  const scrollViewStyle: any = {
+  const scrollViewStyle: JSX.CSSProperties = {
     display: 'flex',
     flexDirection: horizontal ? 'row' : 'column',
+    overflowX: horizontal ? 'auto' : 'hidden',
+    overflowY: horizontal ? 'hidden' : 'auto',
     scrollBehavior: 'smooth',
-    // No overflow: auto - we clip with the parent's overflow: hidden
-    // and use scrollIntoView() to bring focused items into view
+    width: '100%',
+    height: '100%',
+    padding: '20px',
+    boxSizing: 'border-box',
   };
 
   return (
-    <div style={containerStyle}>
-      {/* Ascending arrow (top/left) */}
-      {ascendingArrow && (
-        <div
-          style={{
-            position: 'absolute',
-            [horizontal ? 'left' : 'top']: 0,
-            zIndex: 10,
-            ...ascendingArrowContainerStyle,
-          }}
-          onMouseEnter={() => startScrolling('ascending')}
-          onMouseLeave={() => stopScrolling('ascending')}
-        >
-          {ascendingArrow}
-        </div>
-      )}
+    <SpatialNavigatorParentScrollContext.Provider value={scrollToNode}>
+      <div style={containerStyle} data-testid={testID}>
+        {/* Ascending arrow (top/left) */}
+        {ascendingArrow && (
+          <div
+            style={{
+              position: 'absolute',
+              [horizontal ? 'left' : 'top']: 0,
+              zIndex: 10,
+              ...ascendingArrowContainerStyle,
+            }}
+          >
+            {ascendingArrow}
+          </div>
+        )}
 
-      {/* Scroll container wrapped in SpatialNavigationNode with section registration */}
-      <SpatialNavigationNode
-        orientation={horizontal ? 'horizontal' : 'vertical'}
-        isFocusable={false}
-        registerSection={true}
-        restrict="self-only"
-      >
-        <div ref={scrollContainerRef} style={scrollViewStyle}>
+        {/* Scroll container */}
+        <div ref={scrollViewRef} style={scrollViewStyle}>
           {children}
         </div>
-      </SpatialNavigationNode>
 
-      {/* Descending arrow (bottom/right) */}
-      {descendingArrow && (
-        <div
-          style={{
-            position: 'absolute',
-            [horizontal ? 'right' : 'bottom']: 0,
-            zIndex: 10,
-            ...descendingArrowContainerStyle,
-          }}
-          onMouseEnter={() => startScrolling('descending')}
-          onMouseLeave={() => stopScrolling('descending')}
-        >
-          {descendingArrow}
-        </div>
-      )}
-    </div>
+        {/* Descending arrow (bottom/right) */}
+        {descendingArrow && (
+          <div
+            style={{
+              position: 'absolute',
+              [horizontal ? 'right' : 'bottom']: 0,
+              zIndex: 10,
+              ...descendingArrowContainerStyle,
+            }}
+          >
+            {descendingArrow}
+          </div>
+        )}
+      </div>
+    </SpatialNavigatorParentScrollContext.Provider>
   );
 }
-

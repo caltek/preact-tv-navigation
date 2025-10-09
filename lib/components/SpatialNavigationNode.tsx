@@ -1,272 +1,247 @@
-/** @jsxImportSource preact */
+import type { ComponentChildren, JSX, Ref } from 'preact';
 import { forwardRef } from 'preact/compat';
-import { useEffect, useState, useCallback, useRef, useImperativeHandle, useMemo } from 'preact/hooks';
-import type { SpatialNavigationNodeProps, SpatialNavigationNodeRef, NodeChildParams } from '../types';
-import { useSpatialNavigationContext } from './SpatialNavigationRoot';
-import { navigationEventBus } from '../utils/eventBus';
-import { generateSectionId, focusElement } from '../utils/helpers';
+import { useEffect, useImperativeHandle, useRef, useState } from 'preact/hooks';
+import { useSpatialNavigatorDefaultFocus } from '../context/DefaultFocusContext';
+import { ParentIdContext, useParentId } from '../context/ParentIdContext';
+import { useSpatialNavigatorParentScroll } from '../context/ParentScrollContext';
+import { useSpatialNavigator } from '../context/SpatialNavigatorContext';
+import { useUniqueId } from '../hooks/useUniqueId';
+import type { NodeOrientation, SpatialNavigationNodeRef } from '../types';
+import type { NodeIndexRange } from '@bam.tech/lrud';
+import { useIsRootActive } from '../context/IsRootActiveContext';
+import { cloneElement } from 'preact';
 
-// @ts-ignore - js-spatial-navigation doesn't have TypeScript definitions
-import SpatialNavigation from 'js-spatial-navigation';
+type NonFocusableNodeState = {
+  /** Returns whether the root is active or not. An active node is active if one of its children is focused. */
+  isActive: boolean;
+  /** Returns whether the root is active or not.
+   * This is very handy if you want to hide the focus on your page elements when
+   * the side-menu is focused (since it is a different root navigator) */
+  isRootActive: boolean;
+};
 
-/**
- * SpatialNavigationNode - Core component for spatial navigation
- * Can be focusable itself or a container for focusable children
- */
+export type FocusableNodeState = NonFocusableNodeState & {
+  /** Returns whether the root is focused or not. */
+  isFocused: boolean;
+};
+
+type FocusableProps = {
+  isFocusable: true;
+  children: (props: FocusableNodeState) => JSX.Element;
+};
+type NonFocusableProps = {
+  isFocusable?: false;
+  children: ComponentChildren | ((props: NonFocusableNodeState) => JSX.Element);
+};
+type DefaultProps = {
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onSelect?: () => void;
+  onLongSelect?: () => void;
+  onActive?: () => void;
+  onInactive?: () => void;
+  orientation?: NodeOrientation;
+  /** Use this for grid alignment.
+   * @see LRUD docs */
+  alignInGrid?: boolean;
+  indexRange?: NodeIndexRange;
+  /**
+   * This is an additional offset useful only for the scrollview. It adds up to the offsetFromStart of the scrollview.
+   */
+  additionalOffset?: number;
+};
+export type SpatialNavigationNodeProps = DefaultProps & (FocusableProps | NonFocusableProps);
+
+export type SpatialNavigationNodeDefaultProps = DefaultProps;
+
+const useScrollToNodeIfNeeded = ({
+  childRef,
+  additionalOffset,
+}: {
+  childRef: Ref<HTMLElement | null>;
+  additionalOffset?: number;
+}) => {
+  const { scrollToNodeIfNeeded } = useSpatialNavigatorParentScroll();
+  return () => scrollToNodeIfNeeded(childRef, additionalOffset);
+};
+
+const useBindRefToChild = () => {
+  const childRef = useRef<HTMLElement | null>(null);
+
+  const bindRefToChild = (child: JSX.Element) => {
+    return cloneElement(child, {
+      ...child.props,
+      ref: (node: HTMLElement) => {
+        // We need the reference for our scroll handling
+        childRef.current = node;
+
+        // Let's check if a ref was given (not by us)
+        const { ref } = child as any;
+        if (typeof ref === 'function') {
+          ref(node);
+        }
+
+        if (ref && typeof ref === 'object' && 'current' in ref) {
+          ref.current = node;
+        }
+      },
+    });
+  };
+
+  return { bindRefToChild, childRef };
+};
+
 export const SpatialNavigationNode = forwardRef<SpatialNavigationNodeRef, SpatialNavigationNodeProps>(
   (
     {
       onFocus,
       onBlur,
       onSelect,
-      onLongSelect,
+      onLongSelect = onSelect,
       onActive,
       onInactive,
       orientation = 'vertical',
       isFocusable = false,
       alignInGrid = false,
       indexRange,
-      additionalOffset = 0,
-      registerSection = false,
-      restrict = 'self-first',
       children,
-    },
-    ref
+      additionalOffset = 0,
+    }: SpatialNavigationNodeProps,
+    ref,
   ) => {
-    const { rootActive } = useSpatialNavigationContext();
-    const elementRef = useRef<HTMLDivElement | null>(null);
+    const spatialNavigator = useSpatialNavigator();
+    const parentId = useParentId();
+    const isRootActive = useIsRootActive();
     const [isFocused, setIsFocused] = useState(false);
     const [isActive, setIsActive] = useState(false);
-    const enterPressTimeRef = useRef<number | null>(null);
-    const wasActiveRef = useRef(false);
-    const sectionIdRef = useRef<string | null>(null);
+    // If parent changes, we have to re-register the Node + all children -> adding the parentId to the nodeId makes the children re-register.
+    const id = useUniqueId({ prefix: `${parentId}_node_` });
 
-    // Generate stable section/element ID
-    const nodeId = useMemo(() => generateSectionId(isFocusable ? 'focusable' : 'node'), [isFocusable]);
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => spatialNavigator.grabFocus(id),
+      }),
+      [spatialNavigator, id],
+    );
 
-    // Expose focus method via ref
-    useImperativeHandle(ref, () => ({
-      focus: () => {
-        if (elementRef.current) {
-          if (isFocusable) {
-            focusElement(elementRef.current);
-          } else if (sectionIdRef.current) {
-            SpatialNavigation.focus(sectionIdRef.current);
-          }
-        }
-      },
-    }));
+    const { childRef, bindRefToChild } = useBindRefToChild();
 
-    // Handle focus state for focusable nodes
-    const handleFocusEvent = useCallback((_event?: FocusEvent) => {
-      if (!isFocusable) return;
-      
-      setIsFocused(true);
-      setIsActive(true);
-      
+    const scrollToNodeIfNeeded = useScrollToNodeIfNeeded({
+      childRef,
+      additionalOffset,
+    });
+
+    /*
+     * We don't re-register in LRUD on each render, because LRUD does not allow updating the nodes.
+     * Therefore, the SpatialNavigator Node callbacks are registered at 1st render but can change (ie. if props change) afterwards.
+     * Since we want the functions to always be up to date, we use a reference to them.
+     */
+    const currentOnSelect = useRef<(() => void) | undefined>(undefined);
+    currentOnSelect.current = onSelect;
+
+    const currentOnLongSelect = useRef<(() => void) | undefined>(undefined);
+    currentOnLongSelect.current = onLongSelect;
+
+    const currentOnFocus = useRef<(() => void) | undefined>(undefined);
+    currentOnFocus.current = () => {
       if (onFocus) {
         onFocus();
       }
-      
-      if (onActive && !wasActiveRef.current) {
-        onActive();
-        wasActiveRef.current = true;
-      }
-    }, [isFocusable, onFocus, onActive]);
-
-    const handleBlurEvent = useCallback((_event?: FocusEvent) => {
-      if (!isFocusable) return;
-      
-      setIsFocused(false);
-      
-      if (onBlur) {
-        onBlur();
-      }
-    }, [isFocusable, onBlur]);
-
-    // Handle enter key for select
-    useEffect(() => {
-      if (!isFocusable) return;
-
-      const handleEnterDown = () => {
-        if (isFocused) {
-          enterPressTimeRef.current = Date.now();
-        }
-      };
-
-      const handleEnterUp = () => {
-        if (isFocused && enterPressTimeRef.current) {
-          const pressDuration = Date.now() - enterPressTimeRef.current;
-          enterPressTimeRef.current = null;
-          
-          // Long press threshold: 500ms
-          if (pressDuration >= 500 && onLongSelect) {
-            onLongSelect();
-          } else if (onSelect) {
-            onSelect();
-          }
-        }
-      };
-
-      navigationEventBus.on('enterdown', handleEnterDown);
-      navigationEventBus.on('enterup', handleEnterUp);
-
-      return () => {
-        navigationEventBus.off('enterdown', handleEnterDown);
-        navigationEventBus.off('enterup', handleEnterUp);
-      };
-    }, [isFocused, isFocusable, onSelect, onLongSelect]);
-
-    // Track active state for non-focusable containers
-    useEffect(() => {
-      if (isFocusable) return;
-
-      const checkActiveState = () => {
-        const focusedElement = document.activeElement;
-        const container = elementRef.current;
-        
-        if (container && focusedElement) {
-          const newIsActive = container.contains(focusedElement);
-          
-          if (newIsActive !== isActive) {
-            setIsActive(newIsActive);
-            
-            if (newIsActive && onActive && !wasActiveRef.current) {
-              onActive();
-              wasActiveRef.current = true;
-            } else if (!newIsActive && onInactive && wasActiveRef.current) {
-              onInactive();
-              wasActiveRef.current = false;
-            }
-          }
-        }
-      };
-
-      // Check on focus/blur events
-      const handleFocus = checkActiveState;
-      const handleBlur = checkActiveState;
-
-      navigationEventBus.on('focus', handleFocus);
-      navigationEventBus.on('blur', handleBlur);
-
-      return () => {
-        navigationEventBus.off('focus', handleFocus);
-        navigationEventBus.off('blur', handleBlur);
-      };
-    }, [isFocusable, isActive, onActive, onInactive]);
-
-    // Set up focusable element or section
-    useEffect(() => {
-      if (!elementRef.current) return;
-
-      if (isFocusable) {
-        // Make this element focusable
-        elementRef.current.classList.add('focusable');
-        
-        if (!elementRef.current.hasAttribute('tabindex')) {
-          elementRef.current.setAttribute('tabindex', '-1');
-        }
-
-        // Add event listeners
-        elementRef.current.addEventListener('focus', handleFocusEvent);
-        elementRef.current.addEventListener('blur', handleBlurEvent);
-
-        // Don't call SpatialNavigation.makeFocusable() here!
-        // The default section in SpatialNavigationRoot will pick up all .focusable elements
-        // via its selector: '.focusable', and calling makeFocusable causes js-spatial-navigation
-        // to auto-create unwanted sections like "section-1"
-
-        return () => {
-          if (elementRef.current) {
-            elementRef.current.removeEventListener('focus', handleFocusEvent);
-            elementRef.current.removeEventListener('blur', handleBlurEvent);
-            elementRef.current.classList.remove('focusable');
-          }
-        };
-      } else if (registerSection) {
-        // Register container as a section to isolate navigation
-        const sectionId = nodeId;
-        sectionIdRef.current = sectionId;
-        elementRef.current.id = sectionId;
-
-        SpatialNavigation.add(sectionId, {
-          selector: '.focusable',
-          restrict, // Use the restrict prop value
-          enterTo: 'last-focused',
-        });
-
-        // Make the section focusable
-        SpatialNavigation.makeFocusable(sectionId);
-
-        return () => {
-          if (sectionIdRef.current) {
-            SpatialNavigation.remove(sectionIdRef.current);
-            sectionIdRef.current = null;
-          }
-        };
-      } else {
-        // Container nodes don't register as sections
-        // They're just layout containers - all focusable children
-        // register with the default section for seamless navigation
-        return () => {
-          // No cleanup needed
-        };
-      }
-    }, [isFocusable, registerSection, nodeId, alignInGrid, handleFocusEvent, handleBlurEvent]);
-
-    // Re-make focusable when children change
-    // Note: Only for registered container sections
-    useEffect(() => {
-      if (!registerSection || !sectionIdRef.current) return;
-
-      const timer = setTimeout(() => {
-        if (sectionIdRef.current) {
-          SpatialNavigation.makeFocusable(sectionIdRef.current);
-        }
-      }, 50);
-
-      return () => clearTimeout(timer);
-    }, [children, registerSection]);
-
-    // Determine styles based on orientation
-    // Only apply flex layout for non-focusable container nodes
-    const containerStyle: any = isFocusable
-      ? {
-          outline: 'none',
-        }
-      : {
-          display: 'flex',
-          flexDirection: orientation === 'horizontal' ? 'row' : 'column',
-          outline: 'none',
-        };
-
-    // If children is a function, call it with state
-    const renderChildren = () => {
-      if (typeof children === 'function') {
-        const params: NodeChildParams = {
-          isFocused,
-          isActive,
-          isRootActive: rootActive,
-        };
-        return children(params);
-      }
-      return children;
+      scrollToNodeIfNeeded();
     };
 
-    return (
-      <div
-        ref={elementRef}
-        style={containerStyle}
-        data-orientation={orientation}
-        data-align-in-grid={alignInGrid}
-        data-additional-offset={additionalOffset}
-        data-index-range={indexRange?.join(',')}
-      >
-        {renderChildren()}
-      </div>
+    const currentOnBlur = useRef<(() => void) | undefined>(undefined);
+    currentOnBlur.current = onBlur;
+
+    const currentOnActive = useRef<(() => void) | undefined>(undefined);
+    currentOnActive.current = onActive;
+
+    const currentOnInactive = useRef<(() => void) | undefined>(undefined);
+    currentOnInactive.current = onInactive;
+
+    const shouldHaveDefaultFocus = useSpatialNavigatorDefaultFocus();
+
+    const accessedPropertiesRef = useRef<Set<keyof FocusableNodeState>>(new Set());
+
+    useEffect(() => {
+      spatialNavigator.registerNode(id, {
+        parent: parentId,
+        isFocusable,
+        onBlur: () => {
+          if (currentOnBlur.current) {
+            currentOnBlur.current();
+          }
+          if (accessedPropertiesRef.current.has('isFocused')) {
+            setIsFocused(false);
+          }
+        },
+        onFocus: () => {
+          if (currentOnFocus.current) {
+            currentOnFocus.current();
+          }
+          if (accessedPropertiesRef.current.has('isFocused')) {
+            setIsFocused(true);
+          }
+        },
+        onSelect: () => {
+          if (currentOnSelect.current) {
+            currentOnSelect.current();
+          }
+        },
+        onLongSelect: () => {
+          if (currentOnLongSelect.current) {
+            currentOnLongSelect.current();
+          }
+        },
+        orientation,
+        isIndexAlign: alignInGrid,
+        indexRange,
+        onActive: () => {
+          if (currentOnActive.current) {
+            currentOnActive.current();
+          }
+          if (accessedPropertiesRef.current.has('isActive')) {
+            setIsActive(true);
+          }
+        },
+        onInactive: () => {
+          if (currentOnInactive.current) {
+            currentOnInactive.current();
+          }
+          if (accessedPropertiesRef.current.has('isActive')) {
+            setIsActive(false);
+          }
+        },
+      });
+
+      return () => spatialNavigator.unregisterNode(id);
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- unfortunately, we can't have clean effects with lrud for now
+    }, [parentId]);
+
+    useEffect(() => {
+      if (shouldHaveDefaultFocus && isFocusable && !spatialNavigator.hasOneNodeFocused()) {
+        spatialNavigator.handleOrQueueDefaultFocus(id);
+      }
+    }, [id, isFocusable, shouldHaveDefaultFocus, spatialNavigator]);
+
+    // This proxy allows to track whether a property is used or not
+    // hence allowing to ignore re-renders for unused properties
+    const proxyObject = new Proxy(
+      { isFocused, isActive, isRootActive },
+      {
+        get(target, prop: keyof FocusableNodeState) {
+          accessedPropertiesRef.current.add(prop);
+          return target[prop];
+        },
+      },
     );
-  }
+
+    return (
+      <ParentIdContext.Provider value={id}>
+        {typeof children === 'function' ? bindRefToChild(children(proxyObject)) : children}
+      </ParentIdContext.Provider>
+    );
+  },
 );
-
 SpatialNavigationNode.displayName = 'SpatialNavigationNode';
-

@@ -1,63 +1,107 @@
-import { useCallback } from 'preact/hooks';
 import type { JSX } from 'preact';
-import type { SpatialNavigationFocusableViewProps } from '../types';
-import { SpatialNavigationNode } from './SpatialNavigationNode';
+import { forwardRef } from 'preact/compat';
+import { useImperativeHandle, useMemo, useRef } from 'preact/hooks';
+import {
+  type FocusableNodeState,
+  SpatialNavigationNode,
+  type SpatialNavigationNodeDefaultProps,
+} from './SpatialNavigationNode';
+import type { SpatialNavigationNodeRef } from '../types';
+import { useDeviceType } from '../context/DeviceTypeContext';
+import { useSpatialNavigatorFocusableAccessibilityProps } from '../hooks/useSpatialNavigatorFocusableAccessibilityProps';
 
-/**
- * SpatialNavigationFocusableView - Focusable wrapper with hover support
- * Automatically focuses on mouse enter for web TV pointer/cursor support
- */
-export function SpatialNavigationFocusableView({
-  onFocus,
-  onBlur,
-  onSelect,
-  onLongSelect,
-  onActive,
-  onInactive,
-  orientation = 'vertical',
-  alignInGrid = false,
-  indexRange,
-  additionalOffset = 0,
-  style = {},
-  viewProps = {},
-  children,
-}: SpatialNavigationFocusableViewProps) {
-  // Handle mouse enter to focus (for web TV pointer/cursor)
-  const handleMouseEnter = useCallback((event: JSX.TargetedMouseEvent<HTMLDivElement>) => {
-    const target = event.currentTarget;
-    if (target) {
-      target.focus();
-    }
-    
-    if (viewProps.onMouseEnter) {
-      viewProps.onMouseEnter(event);
-    }
-  }, [viewProps]);
+type FocusableViewProps = {
+  style?: JSX.CSSProperties;
+  children: JSX.Element | ((props: FocusableNodeState) => JSX.Element);
+  viewProps?: JSX.HTMLAttributes<HTMLDivElement> & {
+    onMouseEnter?: () => void;
+  };
+};
 
-  return (
-    <SpatialNavigationNode
-      onFocus={onFocus}
-      onBlur={onBlur}
-      onSelect={onSelect}
-      onLongSelect={onLongSelect}
-      onActive={onActive}
-      onInactive={onInactive}
-      orientation={orientation}
-      isFocusable={true}
-      alignInGrid={alignInGrid}
-      indexRange={indexRange}
-      additionalOffset={additionalOffset}
-    >
-      {({ isFocused, isActive, isRootActive }) => (
-        <div 
-          {...viewProps}
-          style={style}
-          onMouseEnter={handleMouseEnter}
-        >
-          {children({ isFocused, isActive, isRootActive })}
-        </div>
-      )}
-    </SpatialNavigationNode>
-  );
-}
+type Props = SpatialNavigationNodeDefaultProps & FocusableViewProps;
 
+export const SpatialNavigationFocusableView = forwardRef<SpatialNavigationNodeRef, Props>(
+  ({ children, style, viewProps, ...props }, ref) => {
+    const { deviceTypeRef } = useDeviceType();
+    const nodeRef = useRef<SpatialNavigationNodeRef>(null);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          if (nodeRef.current && nodeRef.current.focus) {
+            nodeRef.current.focus();
+          }
+        },
+      }),
+      [nodeRef],
+    );
+
+    const webProps = {
+      onMouseEnter: () => {
+        if (viewProps && viewProps.onMouseEnter) {
+          viewProps.onMouseEnter();
+        }
+        if (deviceTypeRef && typeof deviceTypeRef === 'object' && 'current' in deviceTypeRef && deviceTypeRef.current === 'remotePointer') {
+          if (nodeRef.current && nodeRef.current.focus) {
+            nodeRef.current.focus();
+          }
+        }
+      },
+      onClick: () => {
+        if (props.onSelect) {
+          props.onSelect();
+        }
+      },
+    };
+
+    return (
+      <SpatialNavigationNode isFocusable {...props} ref={nodeRef}>
+        {(nodeState: FocusableNodeState) => (
+          <InnerFocusableView
+            viewProps={viewProps}
+            webProps={webProps}
+            style={style}
+            nodeState={nodeState}
+          >
+            {children}
+          </InnerFocusableView>
+        )}
+      </SpatialNavigationNode>
+    );
+  },
+);
+SpatialNavigationFocusableView.displayName = 'SpatialNavigationFocusableView';
+
+type InnerFocusableViewProps = FocusableViewProps & {
+  webProps: {
+    onMouseEnter: () => void;
+    onClick: () => void;
+  };
+  nodeState: FocusableNodeState;
+};
+
+const InnerFocusableView = forwardRef<HTMLDivElement, InnerFocusableViewProps>(
+  ({ viewProps, webProps, children, nodeState, style }, ref) => {
+    const accessibilityProps = useSpatialNavigatorFocusableAccessibilityProps();
+    const accessibilityState = useMemo(
+      () => ({ selected: nodeState.isFocused }),
+      [nodeState.isFocused],
+    );
+
+    return (
+      <div
+        ref={ref}
+        style={style}
+        data-accessibility-state={JSON.stringify(accessibilityState)}
+        role={accessibilityProps.role as any}
+        aria-label={accessibilityProps['aria-label']}
+        {...viewProps}
+        {...webProps}
+      >
+        {typeof children === 'function' ? children(nodeState) : children}
+      </div>
+    );
+  },
+);
+InnerFocusableView.displayName = 'InnerFocusableView';

@@ -1,0 +1,64 @@
+# Source files
+src/
+*.md
+!README.md
+
+# Development files
+.vscode/
+.idea/
+*.log
+*.local
+
+# Test files
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Build configs
+tsconfig.json
+tsconfig.*.json
+vite.config.ts
+.eslintrc*
+.prettierrc*
+
+# Demo and reference files
+index.html
+public/
+demo-*.tsx
+test-*.tsx
+ref_*.js
+ref_*.html
+sections.html
+*.plan.md
+*SUMMARY.md
+*FIX*.md
+USAGE.md
+IMPLEMENTATION*.md
+NAVIGATION_FIX.md
+VIRTUALIZATION_MIGRATION.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+*~
+.cache/
+

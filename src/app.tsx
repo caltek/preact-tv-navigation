@@ -1,268 +1,242 @@
-import { useState, useEffect } from 'preact/hooks';
-import { 
-  SpatialNavigationRoot, // Using new name
-  useFocusable, 
-  Grid, 
-  List 
+import { useState } from 'preact/hooks';
+import {
+  SpatialNavigationRoot,
+  SpatialNavigationNode,
+  SpatialNavigationView,
+  SpatialNavigationDeviceTypeProvider,
+  DefaultFocus,
+  type FocusableNodeState,
 } from '../lib/index';
 import './app.css';
-import { NewAPIApp } from './demo-new-api';
+import { NestedScrollDemo } from './demos/NestedScrollDemo';
+import { VirtualizedListDemo as VirtualizedListDemoComponent } from './demos/VirtualizedListDemo';
+import { GridDemo as GridDemoComponent } from './demos/GridDemo';
 
-// @ts-ignore - js-spatial-navigation doesn't have TypeScript definitions
-import SpatialNavigation from 'js-spatial-navigation';
+type DemoId = 'basic' | 'scrollview' | 'virtualized-list' | 'grid';
 
-/**
- * Demo: Basic Focusable Component
- */
-function FocusableButton({ children, onEnter }: { children: string; onEnter?: () => void }) {
-  const { ref, focused } = useFocusable({
-    onEnterPress: onEnter,
-  });
-
-  return (
-    <button
-      ref={ref}
-      className={`demo-button focusable ${focused ? 'focused' : ''}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-/**
- * Demo: Grid Item Component
- */
-function GridItem({ index }: { index: number }) {
-  const { ref, focused } = useFocusable({
-    onEnterPress: () => alert(`Grid item ${index + 1} selected!`),
-  });
-
-  return (
-    <div
-      ref={ref}
-      className={`grid-item focusable ${focused ? 'focused' : ''}`}
-    >
-      <div className="item-content">
-        <div className="item-number">{index + 1}</div>
-        <div className="item-label">Item</div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Demo: List Item Component
- */
-function ListItem({ title, description }: { title: string; description: string }) {
-  const { ref, focused } = useFocusable({
-    onEnterPress: () => alert(`${title} selected!`),
-  });
-
-  return (
-    <div
-      ref={ref}
-      className={`list-item focusable ${focused ? 'focused' : ''}`}
-    >
-      <div className="list-item-title">{title}</div>
-      <div className="list-item-description">{description}</div>
-    </div>
-  );
-}
-
-/**
- * Demo: Navigation Menu
- */
-function NavigationMenu({ onSelect }: { onSelect: (menu: string) => void }) {
-  const menuItems = ['Home', 'Movies', 'TV Shows', 'Settings'];
-
-  return (
-    <nav className="demo-nav">
-      <List orientation="horizontal" gap="15px">
-        {menuItems.map((item) => {
-          const { ref, focused } = useFocusable({
-            onEnterPress: () => onSelect(item),
-          });
-
-          return (
-            <div
-              key={item}
-              ref={ref}
-              className={`nav-item focusable ${focused ? 'focused' : ''}`}
-            >
-              {item}
-            </div>
-          );
-        })}
-      </List>
-    </nav>
-  );
-}
-
-/**
- * Main Demo Application
- */
 export function App() {
-  const [selectedMenu, setSelectedMenu] = useState('Home');
-  const [count, setCount] = useState(0);
-  const [showNewAPI, setShowNewAPI] = useState(false);
+  const [activeDemo, setActiveDemo] = useState<DemoId | null>(null);
 
-  useEffect(() => {
-    // Focus the first element when app loads
-    const timer = setTimeout(() => {
-      SpatialNavigation.focus();
-    }, 200);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Toggle between old and new API demos
-  if (showNewAPI) {
+  if (activeDemo) {
     return (
-      <div>
+      <div style={{
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+        backgroundColor: '#0a0a0a',
+        color: 'white',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        {/* Back button */}
         <button
-          onClick={() => setShowNewAPI(false)}
+          onClick={() => setActiveDemo(null)}
           style={{
-            position: 'fixed',
-            top: '10px',
-            right: '10px',
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
             zIndex: 1000,
             padding: '10px 20px',
             cursor: 'pointer',
+            backgroundColor: '#E91E63',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            fontSize: '14px',
           }}
         >
-          Switch to Legacy API Demo
+          ← Back to Menu
         </button>
-        <NewAPIApp />
+        
+        {/* Render active demo */}
+        {activeDemo === 'basic' && <BasicNavigationDemo />}
+        {activeDemo === 'scrollview' && <NestedScrollDemo />}
+        {activeDemo === 'virtualized-list' && <VirtualizedListDemoComponent />}
+        {activeDemo === 'grid' && <GridDemoComponent />}
       </div>
     );
   }
 
   return (
-    <SpatialNavigationRoot>
-      <div className="demo-app">
-        <header className="demo-header">
-          <h1>Preact Spatial Navigation Demo (Legacy API)</h1>
-          <p className="demo-instructions">
-            Use arrow keys to navigate • Press Enter to select
+    <SpatialNavigationDeviceTypeProvider>
+      <SpatialNavigationRoot isActive={true}>
+        <DefaultFocus />
+        <div style={{
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '20px',
+          boxSizing: 'border-box',
+        }}>
+        <div style={{
+          maxWidth: '900px',
+          width: '100%',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: '15px',
+          padding: '40px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        }}>
+          <h1 style={{
+            margin: '0 0 10px 0',
+            fontSize: '36px',
+            color: '#333',
+          }}>
+            Preact Spatial Navigation
+          </h1>
+          <p style={{
+            margin: '0 0 30px 0',
+            fontSize: '16px',
+            color: '#666',
+          }}>
+            Powered by @bam.tech/lrud • Use arrow keys to navigate
           </p>
-          <button
-            onClick={() => setShowNewAPI(true)}
-            style={{
-              padding: '10px 20px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              marginTop: '10px',
-            }}
-          >
-            Switch to New API Demo
-          </button>
-        </header>
 
-        <NavigationMenu onSelect={setSelectedMenu} />
-
-        <main className="demo-main">
-          {/* Section 1: Basic Focusable Elements */}
-          <section className="demo-section">
-            <h2>Basic Focusable Elements</h2>
-            <div className="button-group">
-              <FocusableButton onEnter={() => setCount(count + 1)}>
-                Increment Counter
-              </FocusableButton>
-              <FocusableButton onEnter={() => setCount(count - 1)}>
-                Decrement Counter
-              </FocusableButton>
-              <FocusableButton onEnter={() => setCount(0)}>
-                Reset Counter
-              </FocusableButton>
-            </div>
-            <div className="counter-display">Count: {count}</div>
-          </section>
-
-          {/* Section 2: Grid Layout */}
-          <section className="demo-section">
-            <h2>Grid Navigation (3 columns)</h2>
-            <Grid columns={3} gap="15px">
-              {Array.from({ length: 9 }, (_, i) => (
-                <GridItem key={i} index={i} />
-              ))}
-            </Grid>
-          </section>
-
-          {/* Section 3: Vertical List */}
-          <section className="demo-section">
-            <h2>Vertical List Navigation</h2>
-            <List orientation="vertical" gap="10px">
-              <ListItem
-                title="The Shawshank Redemption"
-                description="Two imprisoned men bond over a number of years"
-              />
-              <ListItem
-                title="The Godfather"
-                description="The aging patriarch of an organized crime dynasty"
-              />
-              <ListItem
-                title="The Dark Knight"
-                description="When the menace known as the Joker wreaks havoc"
-              />
-              <ListItem
-                title="Pulp Fiction"
-                description="The lives of two mob hitmen, a boxer, a gangster"
-              />
-            </List>
-          </section>
-
-          {/* Section 4: Horizontal List */}
-          <section className="demo-section">
-            <h2>Horizontal List Navigation</h2>
-            <List orientation="horizontal" gap="15px">
-              {['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Thriller'].map((genre) => {
-                const { ref, focused } = useFocusable({
-                  onEnterPress: () => alert(`${genre} selected!`),
-                });
-
-                return (
-                  <div
-                    key={genre}
-                    ref={ref}
-                    className={`genre-card focusable ${focused ? 'focused' : ''}`}
-                  >
-                    <div className="genre-icon">🎬</div>
-                    <div className="genre-name">{genre}</div>
-                  </div>
-                );
-              })}
-            </List>
-          </section>
-
-          {/* Section 5: Multiple Grids */}
-          <section className="demo-section">
-            <h2>Multiple Grid Sections</h2>
-            <div className="grid-sections">
-              <div>
-                <h3>Grid A (2 columns)</h3>
-                <Grid columns={2} gap="10px">
-                  {Array.from({ length: 4 }, (_, i) => (
-                    <GridItem key={i} index={i} />
-                  ))}
-                </Grid>
-              </div>
-              <div>
-                <h3>Grid B (2 columns)</h3>
-                <Grid columns={2} gap="10px">
-                  {Array.from({ length: 4 }, (_, i) => (
-                    <GridItem key={i + 4} index={i + 4} />
-                  ))}
-                </Grid>
-              </div>
-            </div>
-          </section>
-        </main>
-
-        <footer className="demo-footer">
-          <p>Current Menu: <strong>{selectedMenu}</strong></p>
-          <p>Built with Preact Spatial Navigation Library (Legacy API: useFocusable, Grid, List)</p>
-        </footer>
+          <SpatialNavigationView direction="vertical" style={{ gap: '15px' }}>
+            <DemoButton
+              title="Basic Navigation"
+              description="Simple focusable nodes with callbacks"
+              icon="🎯"
+              onClick={() => setActiveDemo('basic')}
+            />
+            <DemoButton
+              title="ScrollView Demo"
+              description="Auto-scrolling container with many items"
+              icon="📜"
+              onClick={() => setActiveDemo('scrollview')}
+            />
+            <DemoButton
+              title="Virtualized List"
+              description="Efficient rendering of thousands of items"
+              icon="⚡"
+              onClick={() => setActiveDemo('virtualized-list')}
+            />
+            <DemoButton
+              title="Grid Layout"
+              description="Multi-column grid navigation"
+              icon="📐"
+              onClick={() => setActiveDemo('grid')}
+            />
+          </SpatialNavigationView>
+        </div>
       </div>
-    </SpatialNavigationRoot>
+      </SpatialNavigationRoot>
+    </SpatialNavigationDeviceTypeProvider>
   );
 }
+
+function DemoButton({ title, description, icon, onClick }: {
+  title: string;
+  description: string;
+  icon: string;
+  onClick: () => void;
+}) {
+  return (
+    <SpatialNavigationNode isFocusable onSelect={onClick}>
+      {({ isFocused }: FocusableNodeState) => (
+        <div style={{
+          padding: '20px',
+          borderRadius: '10px',
+          backgroundColor: isFocused ? '#667eea' : '#f5f5f5',
+          color: isFocused ? 'white' : '#333',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          transform: isFocused ? 'translateX(10px)' : 'translateX(0)',
+          border: isFocused ? '3px solid white' : '3px solid transparent',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>{icon}</div>
+          <h3 style={{ margin: '0 0 5px 0', fontSize: '20px' }}>{title}</h3>
+          <p style={{ margin: 0, fontSize: '14px', opacity: isFocused ? 0.9 : 0.7 }}>
+            {description}
+          </p>
+        </div>
+      )}
+    </SpatialNavigationNode>
+  );
+}
+
+// Demo 1: Basic Navigation
+function BasicNavigationDemo() {
+  const [selected, setSelected] = useState<string | null>(null);
+
+  return (
+    <SpatialNavigationDeviceTypeProvider>
+      <SpatialNavigationRoot isActive={true}>
+        <DefaultFocus />
+      <div style={{
+        width: '100%',
+        height: '100%',
+        padding: '60px 40px 40px 40px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '30px',
+      }}>
+        <h1 style={{ margin: 0, fontSize: '32px' }}>Basic Navigation Demo</h1>
+        
+        {/* Horizontal row */}
+        <section>
+          <h2 style={{ margin: '0 0 15px 0', fontSize: '20px' }}>Horizontal Navigation</h2>
+          <SpatialNavigationView direction="horizontal" style={{ gap: '15px' }}>
+            {['Button A', 'Button B', 'Button C', 'Button D'].map(label => (
+              <SpatialNavigationNode key={label} isFocusable onSelect={() => setSelected(label)}>
+                {({ isFocused }: FocusableNodeState) => (
+                  <div style={{
+                    padding: '20px 30px',
+                    borderRadius: '8px',
+                    backgroundColor: isFocused ? '#4CAF50' : '#333',
+                    border: isFocused ? '3px solid white' : '3px solid transparent',
+                    transition: 'all 0.2s',
+                  }}>
+                    {label}
+                  </div>
+                )}
+              </SpatialNavigationNode>
+            ))}
+          </SpatialNavigationView>
+        </section>
+
+        {/* Vertical row */}
+        <section>
+          <h2 style={{ margin: '0 0 15px 0', fontSize: '20px' }}>Vertical Navigation</h2>
+          <SpatialNavigationView direction="vertical" style={{ gap: '10px', maxWidth: '300px' }}>
+            {['Option 1', 'Option 2', 'Option 3'].map(label => (
+              <SpatialNavigationNode key={label} isFocusable onSelect={() => setSelected(label)}>
+                {({ isFocused }: FocusableNodeState) => (
+                  <div style={{
+                    padding: '15px',
+                    borderRadius: '8px',
+                    backgroundColor: isFocused ? '#2196F3' : '#444',
+                    border: isFocused ? '2px solid white' : '2px solid transparent',
+                  }}>
+                    {label}
+                  </div>
+                )}
+              </SpatialNavigationNode>
+            ))}
+          </SpatialNavigationView>
+        </section>
+
+        {selected && (
+          <div style={{
+            padding: '15px',
+            borderRadius: '8px',
+            backgroundColor: '#FFD700',
+            color: '#000',
+            fontWeight: 'bold',
+          }}>
+            Last selected: {selected}
+          </div>
+        )}
+      </div>
+      </SpatialNavigationRoot>
+    </SpatialNavigationDeviceTypeProvider>
+  );
+}
+
+// Demo 2: ScrollView - imported from separate file
+// Demo 3: Virtualized List - imported from separate file
+// Demo 4: Grid - imported from separate file
