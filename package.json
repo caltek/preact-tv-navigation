@@ -1,6 +1,6 @@
 {
   "name": "preact-spatial-navigation",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A powerful Preact library for TV-style spatial navigation with LRUD algorithm, virtualized lists/grids, and smart TV support",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -49,12 +49,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/preact-spatial-navigation.git"
+    "url": "git+https://github.com/caltek/preact-tv-navigation.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/preact-spatial-navigation/issues"
+    "url": "https://github.com/caltek/preact-tv-navigation.git/issues"
   },
-  "homepage": "https://github.com/yourusername/preact-spatial-navigation#readme",
+  "homepage": "https://github.com/caltek/preact-tv-navigation.git#readme",
   "peerDependencies": {
     "preact": "^10.0.0"
   },
