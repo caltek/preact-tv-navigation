@@ -1,6 +1,6 @@
 {
   "name": "preact-spatial-navigation",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "A powerful Preact library for TV-style spatial navigation with LRUD algorithm, virtualized lists/grids, and smart TV support",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -25,8 +25,7 @@
     "build:types": "tsc --project tsconfig.lib.json --declaration --emitDeclarationOnly --outDir dist",
     "build:demo": "tsc -b && vite build",
     "preview": "vite preview",
-    "prepublishOnly": "npm run build",
-    "postpublish": "echo 'Published successfully! Don't forget to tag the release.'"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "preact",
