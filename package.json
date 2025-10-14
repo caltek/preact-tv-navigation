@@ -1,6 +1,6 @@
 {
   "name": "preact-spatial-navigation",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A powerful Preact library for TV-style spatial navigation with LRUD algorithm, virtualized lists/grids, and smart TV support",
   "type": "module",
   "main": "./dist/index.cjs",
