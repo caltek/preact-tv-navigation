@@ -162,7 +162,12 @@ export const SpatialNavigationNode = forwardRef<SpatialNavigationNodeRef, Spatia
 
     const shouldHaveDefaultFocus = useSpatialNavigatorDefaultFocus();
 
-    const accessedPropertiesRef = useRef<Set<keyof FocusableNodeState>>(new Set());
+    // If Proxy is not supported, mark all properties as accessed to ensure re-renders work
+    const accessedPropertiesRef = useRef<Set<keyof FocusableNodeState>>(
+      typeof Proxy !== 'undefined' 
+        ? new Set() 
+        : new Set(['isFocused', 'isActive', 'isRootActive'])
+    );
 
     useEffect(() => {
       spatialNavigator.registerNode(id, {
@@ -227,15 +232,16 @@ export const SpatialNavigationNode = forwardRef<SpatialNavigationNodeRef, Spatia
 
     // This proxy allows to track whether a property is used or not
     // hence allowing to ignore re-renders for unused properties
-    const proxyObject = new Proxy(
-      { isFocused, isActive, isRootActive },
-      {
-        get(target, prop: keyof FocusableNodeState) {
-          accessedPropertiesRef.current.add(prop);
-          return target[prop];
-        },
-      },
-    );
+    // Fallback for browsers without Proxy support (e.g., Chrome < 49)
+    const stateObject = { isFocused, isActive, isRootActive };
+    const proxyObject = typeof Proxy !== 'undefined'
+      ? new Proxy(stateObject, {
+          get(target, prop: keyof FocusableNodeState) {
+            accessedPropertiesRef.current.add(prop);
+            return target[prop];
+          },
+        })
+      : stateObject; // Fallback: no optimization, but compatible with older browsers
 
     return (
       <ParentIdContext.Provider value={id}>
