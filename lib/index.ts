@@ -55,7 +55,8 @@ export {
 export { 
   configureRemoteControl,
   createKeyboardRemoteControl,
-  TV_REMOTE_KEYS 
+  TV_REMOTE_KEYS,
+  createLGRemoteControl,
 } from './utils/remoteControl';
 
 // Export the main namespace object
