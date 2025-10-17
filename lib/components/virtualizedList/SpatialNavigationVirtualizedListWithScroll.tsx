@@ -70,7 +70,7 @@ const useRemotePointerVirtualizedListScrollProps = <T,>({
   data,
   idRef,
 }: {
-  setCurrentlyFocusedItemIndex: React.Dispatch<React.SetStateAction<number>>;
+  setCurrentlyFocusedItemIndex: (value: number | ((prev: number) => number)) => void;
   scrollInterval: number;
   data: T[];
   idRef: Ref<SpatialNavigationVirtualizedListWithVirtualNodesRef>;
@@ -81,7 +81,7 @@ const useRemotePointerVirtualizedListScrollProps = <T,>({
 
   const onMouseEnterDescending = useCallback(() => {
     const callback = () => {
-      setCurrentlyFocusedItemIndex((index) => {
+      setCurrentlyFocusedItemIndex((index: number) => {
         if (index > 0) {
           if (idRef && typeof idRef === 'object' && 'current' in idRef && idRef.current) {
             grabFocus(idRef.current.getNthVirtualNodeID(index - 1));
@@ -105,7 +105,7 @@ const useRemotePointerVirtualizedListScrollProps = <T,>({
 
   const onMouseEnterAscending = useCallback(() => {
     const callback = () => {
-      setCurrentlyFocusedItemIndex((index) => {
+      setCurrentlyFocusedItemIndex((index: number) => {
         if (index < data.length - 1) {
           if (idRef && typeof idRef === 'object' && 'current' in idRef && idRef.current) {
             grabFocus(idRef.current.getNthVirtualNodeID(index + 1));

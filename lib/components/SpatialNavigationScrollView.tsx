@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'preact/hooks';
-import type { Ref, ComponentChildren, JSX } from 'preact';
+import type { ComponentChildren, JSX } from 'preact';
 import {
   ParentScrollContext as SpatialNavigatorParentScrollContext,
   useSpatialNavigatorParentScroll,
@@ -41,14 +41,72 @@ export function SpatialNavigationScrollView({
   ascendingArrowContainerStyle,
   descendingArrow,
   descendingArrowContainerStyle,
-  pointerScrollSpeed = 10,
-  useNativeScroll = false,
-  scrollDuration = 200,
+  pointerScrollSpeed: _pointerScrollSpeed = 10,
+  useNativeScroll: _useNativeScroll = false,
+  scrollDuration: _scrollDuration = 200,
   testID,
 }: Props) {
   const { scrollToNodeIfNeeded: makeParentsScrollToNodeIfNeeded } =
     useSpatialNavigatorParentScroll();
   const scrollViewRef = useRef<HTMLDivElement>(null);
+
+  // Backward-compatible smooth scroll for older browsers (e.g., Chrome 38 on LG TVs)
+  const smoothScroll = useCallback(
+    (
+      container: HTMLDivElement,
+      targetLeft: number | undefined,
+      targetTop: number | undefined,
+      durationMs: number,
+    ) => {
+      const supportsScrollToOptions = typeof (container as any).scrollTo === 'function';
+      // If native scrollTo with options is available, use it for smooth behavior
+      if (supportsScrollToOptions && typeof window !== 'undefined') {
+        try {
+          (container as any).scrollTo({
+            left: targetLeft,
+            top: targetTop,
+            behavior: 'smooth',
+          });
+          return;
+        } catch {
+          // Fall through to manual animation if options not supported
+        }
+      }
+
+      // Manual animation fallback using requestAnimationFrame
+      const startLeft = container.scrollLeft;
+      const startTop = container.scrollTop;
+      const deltaLeft = typeof targetLeft === 'number' ? targetLeft - startLeft : 0;
+      const deltaTop = typeof targetTop === 'number' ? targetTop - startTop : 0;
+      const startTime = Date.now();
+
+      const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+      const step = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(1, durationMs > 0 ? elapsed / durationMs : 1);
+        const eased = easeOutCubic(progress);
+
+        if (typeof targetLeft === 'number') {
+          container.scrollLeft = Math.round(startLeft + deltaLeft * eased);
+        }
+        if (typeof targetTop === 'number') {
+          container.scrollTop = Math.round(startTop + deltaTop * eased);
+        }
+
+        if (progress < 1) {
+          if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
+            requestAnimationFrame(step);
+          } else {
+            setTimeout(step, 16);
+          }
+        }
+      };
+
+      step();
+    },
+    [],
+  );
 
   const scrollToNode: ScrollToNodeCallback = useCallback(
     (newlyFocusedElementRef, additionalOffset = 0) => {
@@ -70,19 +128,11 @@ export function SpatialNavigationScrollView({
       if (horizontal) {
         const elementLeft = elementRect.left - containerRect.left + container.scrollLeft;
         const targetScroll = elementLeft - (offsetFromStart + additionalOffset);
-        
-        container.scrollTo({
-          left: targetScroll,
-          behavior: 'smooth',
-        });
+        smoothScroll(container, targetScroll, undefined, _scrollDuration);
       } else {
         const elementTop = elementRect.top - containerRect.top + container.scrollTop;
         const targetScroll = elementTop - (offsetFromStart + additionalOffset);
-        
-        container.scrollTo({
-          top: targetScroll,
-          behavior: 'smooth',
-        });
+        smoothScroll(container, undefined, targetScroll, _scrollDuration);
       }
 
       // Propagate to parent scrollviews if nested
@@ -103,7 +153,7 @@ export function SpatialNavigationScrollView({
     flexDirection: horizontal ? 'row' : 'column',
     overflowX: horizontal ? 'auto' : 'hidden',
     overflowY: horizontal ? 'hidden' : 'auto',
-    scrollBehavior: 'smooth',
+    // Avoid relying on CSS smooth behavior for old browsers
     width: '100%',
     height: '100%',
     padding: '20px',
@@ -113,7 +163,7 @@ export function SpatialNavigationScrollView({
   return (
     <SpatialNavigatorParentScrollContext.Provider value={scrollToNode}>
       <div style={containerStyle} data-testid={testID}>
-        {/* Ascending arrow (top/left) */}
+        // Ascending arrow (top/left)
         {ascendingArrow && (
           <div
             style={{
@@ -127,12 +177,12 @@ export function SpatialNavigationScrollView({
           </div>
         )}
 
-        {/* Scroll container */}
+        // Scroll container
         <div ref={scrollViewRef} style={scrollViewStyle}>
           {children}
         </div>
 
-        {/* Descending arrow (bottom/right) */}
+        // Descending arrow (bottom/right)
         {descendingArrow && (
           <div
             style={{

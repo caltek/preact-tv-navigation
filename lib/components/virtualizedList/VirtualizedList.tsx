@@ -96,7 +96,7 @@ function ItemContainerWithAnimatedStyle<T>({
   data: T[];
 }) {
   const computeOffset = useCallback(
-    (item: T, index: number) =>
+    (_item: T, index: number) =>
       typeof itemSize === 'number'
         ? index * itemSize
         : data.slice(0, index).reduce((acc, item) => acc + itemSize(item), 0),

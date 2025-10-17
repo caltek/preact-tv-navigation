@@ -90,7 +90,7 @@ export function SpatialNavigationDeviceTypeProvider({
     providedDeviceType || detectDeviceType()
   );
   const deviceTypeRef = useRef<DeviceType>(deviceType);
-  const [scrollingIntervalId, setScrollingIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [_scrollingIntervalId, setScrollingIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   // Update ref when state changes
   useEffect(() => {
