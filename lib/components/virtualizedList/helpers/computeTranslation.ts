@@ -79,7 +79,6 @@ const computeCenterTranslation = <T>({
   data,
   listSizeInPx,
   numberOfItemsVisibleOnScreen,
-  maxPossibleLeftAlignedIndex,
   maxPossibleRightAlignedIndex,
 }: {
   currentlyFocusedItemIndex: number;

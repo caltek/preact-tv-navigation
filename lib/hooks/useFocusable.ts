@@ -24,7 +24,7 @@ import type { FocusableConfig, UseFocusableReturn } from '../types';
  * @param config - Configuration (no longer used)
  * @returns Stub return object
  */
-export function useFocusable(config: FocusableConfig = {}): UseFocusableReturn {
+export function useFocusable(_config: FocusableConfig = {}): UseFocusableReturn {
   console.error(
     '[preact-spatial-navigation] useFocusable is deprecated and no longer functional. ' +
     'Please migrate to SpatialNavigationNode with render props pattern. ' +
