@@ -46,14 +46,14 @@ function detectDeviceType(): DeviceType {
 
   // Check for TV devices
   if (
-    userAgent.includes('tv') ||
-    userAgent.includes('smarttv') ||
-    userAgent.includes('googletv') ||
-    userAgent.includes('appletv') ||
-    userAgent.includes('hbbtv') ||
-    userAgent.includes('pov_tv') ||
-    userAgent.includes('netcast') ||
-    userAgent.includes('nettv')
+    userAgent.indexOf('tv') !== -1 ||
+    userAgent.indexOf('smarttv') !== -1 ||
+    userAgent.indexOf('googletv') !== -1 ||
+    userAgent.indexOf('appletv') !== -1 ||
+    userAgent.indexOf('hbbtv') !== -1 ||
+    userAgent.indexOf('pov_tv') !== -1 ||
+    userAgent.indexOf('netcast') !== -1 ||
+    userAgent.indexOf('nettv') !== -1
   ) {
     return 'tv';
   }

@@ -50,7 +50,7 @@ export function SpatialNavigationScrollView({
     useSpatialNavigatorParentScroll();
   const scrollViewRef = useRef<HTMLDivElement>(null);
 
-  // Backward-compatible smooth scroll for older browsers (e.g., Chrome 38 on LG TVs)
+  // Legacy browser compatible smooth scroll using setTimeout only
   const smoothScroll = useCallback(
     (
       container: HTMLDivElement,
@@ -58,22 +58,6 @@ export function SpatialNavigationScrollView({
       targetTop: number | undefined,
       durationMs: number,
     ) => {
-      const supportsScrollToOptions = typeof (container as any).scrollTo === 'function';
-      // If native scrollTo with options is available, use it for smooth behavior
-      if (supportsScrollToOptions && typeof window !== 'undefined') {
-        try {
-          (container as any).scrollTo({
-            left: targetLeft,
-            top: targetTop,
-            behavior: 'smooth',
-          });
-          return;
-        } catch {
-          // Fall through to manual animation if options not supported
-        }
-      }
-
-      // Manual animation fallback using requestAnimationFrame
       const startLeft = container.scrollLeft;
       const startTop = container.scrollTop;
       const deltaLeft = typeof targetLeft === 'number' ? targetLeft - startLeft : 0;
@@ -95,11 +79,8 @@ export function SpatialNavigationScrollView({
         }
 
         if (progress < 1) {
-          if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
-            requestAnimationFrame(step);
-          } else {
-            setTimeout(step, 16);
-          }
+          // Use setTimeout for legacy browser compatibility (Chrome 38)
+          setTimeout(step, 16);
         }
       };
 

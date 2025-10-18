@@ -106,9 +106,9 @@ function ItemContainerWithAnimatedStyle<T>({
   const style = useMemo<JSX.CSSProperties>(() => {
     const offset = computeOffset(item, index);
     return {
-      left: 0,
       position: 'absolute',
-      transform: vertical ? `translateY(${offset}px)` : `translateX(${offset}px)`,
+      left: vertical ? 0 : offset,
+      top: vertical ? offset : 0,
     };
   }, [computeOffset, item, index, vertical]);
 
@@ -190,13 +190,14 @@ export function VirtualizedList<T>({
     onEndReached,
   });
 
-  // Web animation using CSS transitions
+  // Web animation using CSS transitions with top/left positioning for legacy browser compatibility
   const newTranslationValue = allScrollOffsets[currentlyFocusedItemIndex];
   const animatedStyle = useMemo<JSX.CSSProperties>(() => ({
     transitionDuration: `${scrollDuration}ms`,
-    transitionProperty: 'transform',
+    transitionProperty: vertical ? 'top' : 'left',
     transitionTimingFunction: 'ease-out',
-    transform: vertical ? `translateY(${newTranslationValue}px)` : `translateX(${newTranslationValue}px)`,
+    left: vertical ? 0 : newTranslationValue,
+    top: vertical ? newTranslationValue : 0,
   }), [newTranslationValue, scrollDuration, vertical]);
 
   /*
@@ -209,32 +210,24 @@ export function VirtualizedList<T>({
     [],
   );
 
+  // Legacy browser compatibility: use relative positioning instead of flex for absolute child positioning
   const directionStyle = useMemo<JSX.CSSProperties>(
-    () => ({ flexDirection: vertical ? 'column' : ('row' as const) }),
-    [vertical],
+    () => ({ 
+      position: 'relative',
+      width: vertical ? '100%' : `${totalVirtualizedListSize}px`,
+      height: vertical ? `${totalVirtualizedListSize}px` : '100%',
+    }),
+    [vertical, totalVirtualizedListSize],
   );
 
-  /**
-   * If the view has the size of the screen, then it is dropped in the component hierarchy when scrolled for more than the screen size (scroll right).
-   * To ensure that the view stays visible, we adapt its size to the size of the virtualized list.
-   */
-  const dimensionStyle = useMemo<JSX.CSSProperties>(
-    () =>
-      vertical
-        ? {
-            height: `${totalVirtualizedListSize}px`,
-          }
-        : { width: `${totalVirtualizedListSize}px` },
-    [totalVirtualizedListSize, vertical],
-  );
+  // Dimension style is now handled in directionStyle for legacy browser compatibility
 
   const containerStyle = useMemo<JSX.CSSProperties>(() => ({
     ...style,
     ...animatedStyle,
     ...directionStyle,
-    ...dimensionStyle,
     flex: 1,
-  }), [style, animatedStyle, directionStyle, dimensionStyle]);
+  }), [style, animatedStyle, directionStyle]);
 
   return (
     <div

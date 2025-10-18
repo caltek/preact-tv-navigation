@@ -156,7 +156,17 @@ export const createLGRemoteControl = () => {
         case 461: // LG Back button
           // You can emit a custom event or handle back navigation
           if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('lg-back-pressed'));
+            // CustomEvent fallback for older browsers (e.g., Chrome 38)
+            let event: Event;
+            try {
+              event = new CustomEvent('lg-back-pressed');
+            } catch {
+              // Legacy constructor for older engines
+              event = document.createEvent('CustomEvent');
+              // initCustomEvent exists on legacy engines
+              (event as any).initCustomEvent('lg-back-pressed', false, false, undefined);
+            }
+            window.dispatchEvent(event);
           }
           break;
         default:
