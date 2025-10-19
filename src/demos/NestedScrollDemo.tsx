@@ -69,19 +69,21 @@ export function NestedScrollDemo() {
         {/* Content area with scrolling */}
         <div style={{ 
           flex: 1, 
-          overflow: 'hidden', 
+          overflow: 'hidden', // Remove parent overflow to let SpatialNavigationScrollView handle it
           display: 'flex', 
           WebkitBoxOrient: 'vertical', // Chrome 38 fallback
           flexDirection: 'column',
           // Chrome 38 specific fixes for parent container
           position: 'relative',
           minHeight: 0, // Allow flex item to shrink
+          height: 0, // Chrome 38 fix: Force flex item to respect flex: 1
         }}>
           <SpatialNavigationScrollView
             horizontal={false}
             offsetFromStart={100}
             style={{
               flex: 1,
+              height: '100%', // Chrome 38 fix: Explicit height for scroll container
             }}
           >
             <SpatialNavigationView direction="vertical" style={{ 

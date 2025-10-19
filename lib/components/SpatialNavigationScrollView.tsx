@@ -172,12 +172,14 @@ export function SpatialNavigationScrollView({
         additionalOffset,
         hasScrollViewRef: !!scrollViewRef.current,
         hasElementRef: !!newlyFocusedElementRef,
+        usingSmoothScroll: true,
       });
 
       // Log scroll container dimensions for debugging
       if (scrollViewRef.current) {
         const container = scrollViewRef.current;
         console.log('📏 SpatialNavigationScrollView: Container dimensions', {
+          horizontal,
           clientHeight: container.clientHeight,
           clientWidth: container.clientWidth,
           scrollHeight: container.scrollHeight,
@@ -186,6 +188,15 @@ export function SpatialNavigationScrollView({
           scrollLeft: container.scrollLeft,
           offsetHeight: container.offsetHeight,
           offsetWidth: container.offsetWidth,
+          canScrollHorizontally: container.scrollWidth > container.clientWidth,
+          canScrollVertically: container.scrollHeight > container.clientHeight,
+          computedStyle: {
+            width: getComputedStyle(container).width,
+            height: getComputedStyle(container).height,
+            overflowX: getComputedStyle(container).overflowX,
+            overflowY: getComputedStyle(container).overflowY,
+            display: getComputedStyle(container).display,
+          },
         });
       }
 
@@ -214,61 +225,79 @@ export function SpatialNavigationScrollView({
         elementClass: element.className,
       });
 
-      // Calculate position relative to scroll container
+      // Calculate scroll position using the original smoothScroll approach
       const container = scrollViewRef.current;
       const elementRect = element.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
 
-      console.log('📏 SpatialNavigationScrollView: Position calculations', {
-        elementRect: {
-          left: elementRect.left,
-          top: elementRect.top,
-          width: elementRect.width,
-          height: elementRect.height,
-        },
-        containerRect: {
-          left: containerRect.left,
-          top: containerRect.top,
-          width: containerRect.width,
-          height: containerRect.height,
-        },
-        currentScroll: {
-          left: container.scrollLeft,
-          top: container.scrollTop,
-        },
-        containerScrollSize: {
-          scrollWidth: container.scrollWidth,
-          scrollHeight: container.scrollHeight,
-        },
-      });
+      let targetLeft: number | undefined;
+      let targetTop: number | undefined;
 
       if (horizontal) {
         const elementLeft = elementRect.left - containerRect.left + container.scrollLeft;
-        const targetScroll = elementLeft - (offsetFromStart + additionalOffset);
-        console.log('➡️ SpatialNavigationScrollView: Horizontal scroll', {
+        const containerWidth = container.clientWidth;
+        const elementWidth = elementRect.width;
+        
+        // Center the element horizontally
+        targetLeft = elementLeft - (containerWidth - elementWidth) / 2;
+        
+        // Apply offset
+        if (offsetFromStart > 0 || additionalOffset > 0) {
+          targetLeft = targetLeft - (offsetFromStart + additionalOffset);
+        }
+        
+        // Ensure we don't scroll beyond bounds
+        targetLeft = Math.max(0, Math.min(targetLeft, container.scrollWidth - containerWidth));
+        
+        console.log('➡️ SpatialNavigationScrollView: Calculated horizontal scroll', {
           elementLeft,
-          targetScroll,
+          containerWidth,
+          elementWidth,
+          targetLeft,
           offsetFromStart,
           additionalOffset,
         });
-        smoothScroll(container, targetScroll, undefined, _scrollDuration);
       } else {
         const elementTop = elementRect.top - containerRect.top + container.scrollTop;
-        const targetScroll = elementTop - (offsetFromStart + additionalOffset);
-        console.log('⬇️ SpatialNavigationScrollView: Vertical scroll', {
+        const containerHeight = container.clientHeight;
+        const elementHeight = elementRect.height;
+        
+        // Center the element vertically
+        targetTop = elementTop - (containerHeight - elementHeight) / 2;
+        
+        // Apply offset
+        if (offsetFromStart > 0 || additionalOffset > 0) {
+          targetTop = targetTop - (offsetFromStart + additionalOffset);
+        }
+        
+        // Ensure we don't scroll beyond bounds
+        targetTop = Math.max(0, Math.min(targetTop, container.scrollHeight - containerHeight));
+        
+        console.log('⬇️ SpatialNavigationScrollView: Calculated vertical scroll', {
           elementTop,
-          targetScroll,
+          containerHeight,
+          elementHeight,
+          targetTop,
           offsetFromStart,
           additionalOffset,
+          containerScrollHeight: container.scrollHeight,
         });
-        smoothScroll(container, undefined, targetScroll, _scrollDuration);
       }
 
+      // Use smooth scroll for all browsers
+      console.log('🎬 SpatialNavigationScrollView: Starting smooth scroll', {
+        targetLeft,
+        targetTop,
+        duration: _scrollDuration,
+      });
+      
+      smoothScroll(container, targetLeft, targetTop, _scrollDuration);
+      
       // Propagate to parent scrollviews if nested
       console.log('🔄 SpatialNavigationScrollView: Propagating to parent scrollviews');
       makeParentsScrollToNodeIfNeeded(newlyFocusedElementRef, additionalOffset);
     },
-    [makeParentsScrollToNodeIfNeeded, horizontal, offsetFromStart, _scrollDuration],
+    [makeParentsScrollToNodeIfNeeded, horizontal, offsetFromStart, _scrollDuration, smoothScroll],
   );
 
   const containerStyle: JSX.CSSProperties = {
@@ -281,12 +310,9 @@ export function SpatialNavigationScrollView({
   const scrollViewStyle: JSX.CSSProperties = {
     // Chrome 38 specific: Use block layout instead of flexbox for scroll containers
     display: 'block',
-    // Chrome 38 overflow fixes - try different approach
-    overflow: horizontal ? 'auto' : 'auto', // Use 'auto' but with explicit height
     // Avoid relying on CSS smooth behavior for old browsers
     width: '100%',
     height: '100%',
-    maxHeight: '100%', // Explicit max height for Chrome 38
     padding: '20px',
     boxSizing: 'border-box',
     // Chrome 38 specific fixes
@@ -298,9 +324,12 @@ export function SpatialNavigationScrollView({
     // Force scroll container to be scrollable in Chrome 38
     minHeight: 0,
     minWidth: 0,
-    // Chrome 38 specific: Ensure proper overflow behavior
+    // Chrome 38 specific: Ensure proper overflow behavior - CRITICAL FOR CHROME 38
     overflowX: horizontal ? 'auto' : 'hidden',
     overflowY: horizontal ? 'hidden' : 'auto',
+    // Chrome 38 fix: Force the container to be scrollable
+    maxHeight: horizontal ? 'none' : '100%',
+    maxWidth: horizontal ? '100%' : 'none',
   };
 
   return (
