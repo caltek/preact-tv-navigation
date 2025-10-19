@@ -1,7 +1,7 @@
-import { configureRemoteControl, createKeyboardRemoteControl } from '../lib/index';
+import { configureRemoteControl, createLGRemoteControl } from '../lib/index';
 
 // Configure keyboard-based remote control for web development and testing
-const { subscriber, unsubscriber } = createKeyboardRemoteControl();
+const { subscriber, unsubscriber } = createLGRemoteControl();
 
 configureRemoteControl({
   remoteControlSubscriber: subscriber,
