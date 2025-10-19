@@ -26,6 +26,7 @@ dist-ssr
 
 # Build output
 dist/
+dist-legacy/
 *.tsbuildinfo
 
 # Environment files
