@@ -90,12 +90,15 @@ export function NestedScrollDemo() {
               // Chrome 38 specific: Use block layout for scroll content
               display: 'block',
               padding: '0 40px 40px 40px', // Add bottom padding to ensure last item is fully visible
-              // Ensure content is tall enough to scroll in Chrome 38
-              minHeight: '100%',
+              // CRITICAL Chrome 38 fix: Force content to have explicit height calculation
+              // Without this, Chrome 38 doesn't calculate scrollHeight properly
+              minHeight: '200vh', // Force content to be taller than viewport to enable scrolling
               height: 'auto',
               // Chrome 38 specific fixes
               WebkitTransform: 'translateZ(0)', // Force hardware acceleration
               transform: 'translateZ(0)',
+              // Force block formatting context
+              overflow: 'visible',
             }}>
               {rows.map((row) => (
                 <div key={row.id} style={{
