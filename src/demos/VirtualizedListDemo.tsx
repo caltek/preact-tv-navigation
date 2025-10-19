@@ -41,6 +41,12 @@ export function VirtualizedListDemo() {
 
   const currentData = datasets[datasetSize];
 
+  console.log('🎯 VirtualizedListDemo: Component render', {
+    selectedItem,
+    datasetSize,
+    currentDataLength: currentData.length,
+  });
+
   return (
     <SpatialNavigationDeviceTypeProvider>
       <SpatialNavigationRoot isActive={true}>

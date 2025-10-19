@@ -5,6 +5,9 @@
  * powered by @bam.tech/lrud.
  */
 
+// Import Chrome 38 compatibility polyfills
+import './utils/chrome38Compatibility';
+
 // Export Direction enum from lrud
 export { Directions } from '@bam.tech/lrud';
 

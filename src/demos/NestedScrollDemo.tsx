@@ -24,6 +24,12 @@ export function NestedScrollDemo() {
     itemCount: 10 + Math.floor(Math.random() * 6), // 10-15 items
   }));
 
+  console.log('🎯 NestedScrollDemo: Component render', {
+    selectedItem,
+    rowsCount: rows.length,
+    totalItems: rows.reduce((sum, row) => sum + row.itemCount, 0),
+  });
+
   return (
     <SpatialNavigationDeviceTypeProvider>
       <SpatialNavigationRoot isActive={true}>
@@ -61,7 +67,13 @@ export function NestedScrollDemo() {
         </header>
 
         {/* Content area with scrolling */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ 
+          flex: 1, 
+          overflow: 'hidden', 
+          display: 'flex', 
+          WebkitBoxOrient: 'vertical', // Chrome 38 fallback
+          flexDirection: 'column' 
+        }}>
           <SpatialNavigationScrollView
             horizontal={false}
             offsetFromStart={100}
@@ -69,7 +81,14 @@ export function NestedScrollDemo() {
               flex: 1,
             }}
           >
-            <SpatialNavigationView direction="vertical" style={{ gap: '30px', padding: '0 40px' }}>
+            <SpatialNavigationView direction="vertical" style={{ 
+              gap: '30px', 
+              padding: '0 40px',
+              // Chrome 38 specific fixes
+              display: 'flex',
+              WebkitBoxOrient: 'vertical',
+              flexDirection: 'column',
+            }}>
               {rows.map((row) => (
                 <div key={row.id}>
                   {/* Row Title */}
@@ -91,7 +110,13 @@ export function NestedScrollDemo() {
                         maxHeight: '150px',
                       }}
                     >
-                      <SpatialNavigationView direction="horizontal" style={{ gap: '15px' }}>
+                      <SpatialNavigationView direction="horizontal" style={{ 
+                        gap: '15px',
+                        // Chrome 38 specific fixes
+                        display: 'flex',
+                        WebkitBoxOrient: 'horizontal',
+                        flexDirection: 'row',
+                      }}>
                         {Array.from({ length: row.itemCount }, (_, itemIndex) => (
                           <SpatialNavigationNode
                             key={itemIndex}
@@ -106,14 +131,24 @@ export function NestedScrollDemo() {
                                 borderRadius: '8px',
                                 backgroundColor: isFocused ? '#E91E63' : '#1a1a1a',
                                 border: isFocused ? '3px solid white' : '3px solid #333',
+                                // Chrome 38 compatible flexbox
                                 display: 'flex',
+                                WebkitBoxOrient: 'vertical',
                                 flexDirection: 'column',
+                                WebkitBoxAlign: 'center',
                                 alignItems: 'center',
+                                WebkitBoxPack: 'center',
                                 justifyContent: 'center',
+                                // Chrome 38 compatible transitions
+                                WebkitTransition: 'all 0.2s',
                                 transition: 'all 0.2s',
+                                WebkitTransform: isFocused ? 'scale(1.05)' : 'scale(1)',
                                 transform: isFocused ? 'scale(1.05)' : 'scale(1)',
                                 boxShadow: isFocused ? '0 4px 20px rgba(233, 30, 99, 0.6)' : 'none',
                                 flexShrink: 0,
+                                // Chrome 38 specific fixes
+                                WebkitBackfaceVisibility: 'hidden',
+                                backfaceVisibility: 'hidden',
                               }}>
                                 <div style={{
                                   fontSize: '28px',

@@ -27,6 +27,12 @@ export function GridDemo() {
     category: ['Movies', 'TV Shows', 'Sports', 'Music', 'Games'][i % 5],
   }));
 
+  console.log('🎯 GridDemo: Component render', {
+    selectedItem,
+    columns,
+    gridDataLength: gridData.length,
+  });
+
   return (
     <SpatialNavigationDeviceTypeProvider>
       <SpatialNavigationRoot isActive={true}>
