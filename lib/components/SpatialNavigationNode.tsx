@@ -165,8 +165,8 @@ export const SpatialNavigationNode = forwardRef<SpatialNavigationNodeRef, Spatia
     // If Proxy is not supported, mark all properties as accessed to ensure re-renders work
     const accessedPropertiesRef = useRef<Set<keyof FocusableNodeState>>(
       typeof Proxy !== 'undefined' 
-        ? new Set() 
-        : new Set(['isFocused', 'isActive', 'isRootActive'])
+        ? new Set<keyof FocusableNodeState>() 
+        : new Set<keyof FocusableNodeState>(['isFocused', 'isActive', 'isRootActive'])
     );
 
     useEffect(() => {

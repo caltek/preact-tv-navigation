@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "target": "ES5",
+    "lib": ["ES5", "ES2015", "DOM", "DOM.Iterable"],
+    "module": "ES2015",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "skipLibCheck": true,
+    "paths": {
+      "react": ["./node_modules/preact/compat/"],
+      "react-dom": ["./node_modules/preact/compat/"]
+    },
+    "typeRoots": ["./node_modules/@types", "./@types"]
+  },
+  "include": ["src"]
+}

@@ -24,7 +24,9 @@
     "build:lib": "vite build --mode lib",
     "build:types": "tsc --project tsconfig.lib.json --declaration --emitDeclarationOnly --outDir dist",
     "build:demo": "tsc -b && vite build",
+    "build:demo:legacy": "tsc --project tsconfig.legacy.json && vite build --mode legacy",
     "preview": "vite preview",
+    "preview:legacy": "vite preview --mode legacy",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -66,7 +68,9 @@
     "@preact/preset-vite": "^2.10.2",
     "@types/lodash.uniqueid": "^4.0.9",
     "@types/node": "^24.6.0",
+    "@vitejs/plugin-legacy": "^7.2.1",
     "preact": "^10.27.2",
+    "terser": "^5.44.0",
     "typescript": "~5.9.3",
     "vite": "^7.1.7"
   }
