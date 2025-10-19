@@ -82,15 +82,24 @@ export function NestedScrollDemo() {
             }}
           >
             <SpatialNavigationView direction="vertical" style={{ 
-              gap: '30px', 
-              padding: '0 40px',
+              // Chrome 38 specific: Use block layout for scroll content
+              display: 'block',
+              padding: '0 40px 40px 40px', // Add bottom padding to ensure last item is fully visible
+              // Ensure content is tall enough to scroll in Chrome 38
+              minHeight: '100%',
+              height: 'auto',
               // Chrome 38 specific fixes
-              display: 'flex',
-              WebkitBoxOrient: 'vertical',
-              flexDirection: 'column',
+              WebkitTransform: 'translateZ(0)', // Force hardware acceleration
+              transform: 'translateZ(0)',
             }}>
               {rows.map((row) => (
-                <div key={row.id}>
+                <div key={row.id} style={{
+                  // Chrome 38 specific: Add margin instead of flexbox gap
+                  marginBottom: '30px',
+                  // Ensure proper rendering
+                  WebkitTransform: 'translateZ(0)',
+                  transform: 'translateZ(0)',
+                }}>
                   {/* Row Title */}
                   <h2 style={{
                     margin: '0 0 15px 0',
@@ -111,11 +120,12 @@ export function NestedScrollDemo() {
                       }}
                     >
                       <SpatialNavigationView direction="horizontal" style={{ 
-                        gap: '15px',
+                        // Chrome 38 specific: Use block layout with white-space for horizontal scrolling
+                        display: 'block',
+                        whiteSpace: 'nowrap', // Prevent wrapping for horizontal layout
                         // Chrome 38 specific fixes
-                        display: 'flex',
-                        WebkitBoxOrient: 'horizontal',
-                        flexDirection: 'row',
+                        WebkitTransform: 'translateZ(0)',
+                        transform: 'translateZ(0)',
                       }}>
                         {Array.from({ length: row.itemCount }, (_, itemIndex) => (
                           <SpatialNavigationNode
@@ -131,41 +141,49 @@ export function NestedScrollDemo() {
                                 borderRadius: '8px',
                                 backgroundColor: isFocused ? '#E91E63' : '#1a1a1a',
                                 border: isFocused ? '3px solid white' : '3px solid #333',
-                                // Chrome 38 compatible flexbox
-                                display: 'flex',
-                                WebkitBoxOrient: 'vertical',
-                                flexDirection: 'column',
-                                WebkitBoxAlign: 'center',
-                                alignItems: 'center',
-                                WebkitBoxPack: 'center',
-                                justifyContent: 'center',
+                                // Chrome 38 specific: Use inline-block for horizontal layout
+                                display: 'inline-block',
+                                verticalAlign: 'top',
+                                marginRight: '15px', // Add spacing instead of flexbox gap
                                 // Chrome 38 compatible transitions
                                 WebkitTransition: 'all 0.2s',
                                 transition: 'all 0.2s',
                                 WebkitTransform: isFocused ? 'scale(1.05)' : 'scale(1)',
                                 transform: isFocused ? 'scale(1.05)' : 'scale(1)',
                                 boxShadow: isFocused ? '0 4px 20px rgba(233, 30, 99, 0.6)' : 'none',
-                                flexShrink: 0,
                                 // Chrome 38 specific fixes
                                 WebkitBackfaceVisibility: 'hidden',
                                 backfaceVisibility: 'hidden',
+                                // Center content using text-align and line-height
+                                textAlign: 'center',
+                                lineHeight: '110px',
                               }}>
                                 <div style={{
                                   fontSize: '28px',
                                   marginBottom: '8px',
+                                  lineHeight: '1',
+                                  display: 'inline-block',
+                                  verticalAlign: 'middle',
                                 }}>
                                   📺
                                 </div>
+                                <br />
                                 <div style={{
                                   fontSize: '14px',
                                   fontWeight: isFocused ? 'bold' : 'normal',
+                                  lineHeight: '1',
+                                  display: 'inline-block',
+                                  verticalAlign: 'middle',
                                 }}>
                                   Item {itemIndex + 1}
                                 </div>
+                                <br />
                                 <div style={{
                                   fontSize: '11px',
                                   color: isFocused ? '#fff' : '#888',
-                                  marginTop: '4px',
+                                  lineHeight: '1',
+                                  display: 'inline-block',
+                                  verticalAlign: 'middle',
                                 }}>
                                   {itemIndex + 1} / {row.itemCount}
                                 </div>

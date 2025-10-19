@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'preact/hooks';
+import { useCallback, useRef, useEffect } from 'preact/hooks';
 import type { ComponentChildren, JSX } from 'preact';
 import {
   ParentScrollContext as SpatialNavigatorParentScrollContext,
@@ -49,6 +49,25 @@ export function SpatialNavigationScrollView({
   const { scrollToNodeIfNeeded: makeParentsScrollToNodeIfNeeded } =
     useSpatialNavigatorParentScroll();
   const scrollViewRef = useRef<HTMLDivElement>(null);
+
+  // Debug scroll container dimensions on mount and when content changes
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      const container = scrollViewRef.current;
+      console.log('🔍 SpatialNavigationScrollView: Mounted with dimensions', {
+        horizontal,
+        clientHeight: container.clientHeight,
+        clientWidth: container.clientWidth,
+        scrollHeight: container.scrollHeight,
+        scrollWidth: container.scrollWidth,
+        scrollTop: container.scrollTop,
+        scrollLeft: container.scrollLeft,
+        offsetHeight: container.offsetHeight,
+        offsetWidth: container.offsetWidth,
+        isScrollable: container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth,
+      });
+    }
+  }, [horizontal, children]);
 
   // Legacy browser compatible smooth scroll using setTimeout only
   const smoothScroll = useCallback(
@@ -136,6 +155,21 @@ export function SpatialNavigationScrollView({
         hasScrollViewRef: !!scrollViewRef.current,
         hasElementRef: !!newlyFocusedElementRef,
       });
+
+      // Log scroll container dimensions for debugging
+      if (scrollViewRef.current) {
+        const container = scrollViewRef.current;
+        console.log('📏 SpatialNavigationScrollView: Container dimensions', {
+          clientHeight: container.clientHeight,
+          clientWidth: container.clientWidth,
+          scrollHeight: container.scrollHeight,
+          scrollWidth: container.scrollWidth,
+          scrollTop: container.scrollTop,
+          scrollLeft: container.scrollLeft,
+          offsetHeight: container.offsetHeight,
+          offsetWidth: container.offsetWidth,
+        });
+      }
 
       if (!scrollViewRef.current) {
         console.warn('❌ SpatialNavigationScrollView: scrollViewRef.current is null');
@@ -227,10 +261,8 @@ export function SpatialNavigationScrollView({
   };
 
   const scrollViewStyle: JSX.CSSProperties = {
-    // Chrome 38 compatible flexbox with fallbacks
-    display: 'flex',
-    WebkitBoxOrient: horizontal ? 'horizontal' : 'vertical', // Chrome 38 fallback
-    flexDirection: horizontal ? 'row' : 'column',
+    // Chrome 38 specific: Use block layout instead of flexbox for scroll containers
+    display: 'block',
     overflowX: horizontal ? 'auto' : 'hidden',
     overflowY: horizontal ? 'hidden' : 'auto',
     // Avoid relying on CSS smooth behavior for old browsers
@@ -241,6 +273,11 @@ export function SpatialNavigationScrollView({
     // Chrome 38 specific fixes
     WebkitOverflowScrolling: 'touch', // Enable momentum scrolling on iOS/Chrome
     position: 'relative', // Ensure proper positioning context
+    // Chrome 38 scroll container fixes
+    WebkitTransform: 'translateZ(0)', // Force hardware acceleration
+    transform: 'translateZ(0)',
+    // Ensure proper scrolling behavior for Chrome 38
+    overflow: horizontal ? 'auto hidden' : 'hidden auto',
   };
 
   return (
