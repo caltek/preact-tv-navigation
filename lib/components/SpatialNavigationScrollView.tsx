@@ -66,6 +66,24 @@ export function SpatialNavigationScrollView({
         offsetWidth: container.offsetWidth,
         isScrollable: container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth,
       });
+
+      // Add scroll event listener for debugging
+      const handleScroll = () => {
+        console.log('📜 SpatialNavigationScrollView: Scroll event', {
+          scrollTop: container.scrollTop,
+          scrollLeft: container.scrollLeft,
+          scrollHeight: container.scrollHeight,
+          clientHeight: container.clientHeight,
+          maxScrollTop: container.scrollHeight - container.clientHeight,
+          isAtBottom: container.scrollTop >= (container.scrollHeight - container.clientHeight - 1),
+        });
+      };
+
+      container.addEventListener('scroll', handleScroll);
+      
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
     }
   }, [horizontal, children]);
 
@@ -263,11 +281,12 @@ export function SpatialNavigationScrollView({
   const scrollViewStyle: JSX.CSSProperties = {
     // Chrome 38 specific: Use block layout instead of flexbox for scroll containers
     display: 'block',
-    overflowX: horizontal ? 'auto' : 'hidden',
-    overflowY: horizontal ? 'hidden' : 'auto',
+    // Chrome 38 overflow fixes - try different approach
+    overflow: horizontal ? 'auto' : 'auto', // Use 'auto' but with explicit height
     // Avoid relying on CSS smooth behavior for old browsers
     width: '100%',
     height: '100%',
+    maxHeight: '100%', // Explicit max height for Chrome 38
     padding: '20px',
     boxSizing: 'border-box',
     // Chrome 38 specific fixes
@@ -276,8 +295,12 @@ export function SpatialNavigationScrollView({
     // Chrome 38 scroll container fixes
     WebkitTransform: 'translateZ(0)', // Force hardware acceleration
     transform: 'translateZ(0)',
-    // Ensure proper scrolling behavior for Chrome 38
-    overflow: horizontal ? 'auto hidden' : 'hidden auto',
+    // Force scroll container to be scrollable in Chrome 38
+    minHeight: 0,
+    minWidth: 0,
+    // Chrome 38 specific: Ensure proper overflow behavior
+    overflowX: horizontal ? 'auto' : 'hidden',
+    overflowY: horizontal ? 'hidden' : 'auto',
   };
 
   return (

@@ -72,7 +72,10 @@ export function NestedScrollDemo() {
           overflow: 'hidden', 
           display: 'flex', 
           WebkitBoxOrient: 'vertical', // Chrome 38 fallback
-          flexDirection: 'column' 
+          flexDirection: 'column',
+          // Chrome 38 specific fixes for parent container
+          position: 'relative',
+          minHeight: 0, // Allow flex item to shrink
         }}>
           <SpatialNavigationScrollView
             horizontal={false}
