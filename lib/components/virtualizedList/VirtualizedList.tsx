@@ -198,21 +198,6 @@ export function VirtualizedList<T>({
 
   // Web animation using CSS transitions with top/left positioning for legacy browser compatibility
   const newTranslationValue = allScrollOffsets[currentlyFocusedItemIndex];
-  const animatedStyle = useMemo<JSX.CSSProperties>(() => ({
-    // Chrome 38 compatible transitions
-    WebkitTransitionDuration: `${scrollDuration}ms`,
-    transitionDuration: `${scrollDuration}ms`,
-    WebkitTransitionProperty: vertical ? 'top' : 'left',
-    transitionProperty: vertical ? 'top' : 'left',
-    WebkitTransitionTimingFunction: 'ease-out',
-    transitionTimingFunction: 'ease-out',
-    // Position properties
-    left: vertical ? 0 : newTranslationValue,
-    top: vertical ? newTranslationValue : 0,
-    // Chrome 38 specific fixes
-    WebkitTransform: 'translateZ(0)', // Force hardware acceleration
-    transform: 'translateZ(0)',
-  }), [newTranslationValue, scrollDuration, vertical]);
 
   /*
    * Use the actual index as the key to avoid duplicate key issues.
@@ -224,46 +209,56 @@ export function VirtualizedList<T>({
     [],
   );
 
-  // Legacy browser compatibility: use relative positioning instead of flex for absolute child positioning
-  const directionStyle = useMemo<JSX.CSSProperties>(
-    () => ({ 
-      position: 'relative',
-      width: '100%',
-      height: '100%',
-      // Chrome 38 specific fixes
-      WebkitTransform: 'translateZ(0)', // Force hardware acceleration
-      transform: 'translateZ(0)',
-    }),
-    [vertical, totalVirtualizedListSize],
-  );
-
-  // Dimension style is now handled in directionStyle for legacy browser compatibility
-
-  const containerStyle = useMemo<JSX.CSSProperties>(() => ({
+  // Viewport wrapper: fills parent container and clips content
+  const viewportStyle = useMemo<JSX.CSSProperties>(() => ({
     ...style,
-    ...animatedStyle,
-    ...directionStyle,
-  }), [style, animatedStyle, directionStyle]);
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+    overflow: 'hidden',
+  }), [style]);
+
+  // Scrollable content wrapper: sized to virtual list, can be animated
+  const scrollableContentStyle = useMemo<JSX.CSSProperties>(() => {
+    const translateValue = vertical 
+      ? `translate3d(0, ${newTranslationValue}px, 0)`
+      : `translate3d(${newTranslationValue}px, 0, 0)`;
+    
+    return {
+      position: 'relative',
+      width: vertical ? '100%' : `${totalVirtualizedListSize}px`,
+      height: vertical ? `${totalVirtualizedListSize}px` : '100%',
+      // Chrome 38 compatible transitions using transform
+      WebkitTransitionDuration: `${scrollDuration}ms`,
+      transitionDuration: `${scrollDuration}ms`,
+      WebkitTransitionProperty: '-webkit-transform, transform',
+      transitionProperty: 'transform',
+      WebkitTransitionTimingFunction: 'ease-out',
+      transitionTimingFunction: 'ease-out',
+      // Use transform for animation (better Chrome 38 support)
+      WebkitTransform: translateValue,
+      transform: translateValue,
+    };
+  }, [vertical, totalVirtualizedListSize, scrollDuration, newTranslationValue]);
 
   return (
-    <div
-      style={containerStyle}
-      data-testid={testID}
-    >
-      {dataSliceToRender.map((item, virtualIndex) => {
-        const index = range.start + virtualIndex;
-        return (
-          <ItemContainerWithAnimatedStyle<T>
-            key={keyExtractor ? keyExtractor(index) : defaultKeyExtractor(index)}
-            renderItem={renderItem}
-            item={item}
-            index={index}
-            itemSize={itemSize}
-            vertical={vertical}
-            data={data}
-          />
-        );
-      })}
+    <div style={viewportStyle} data-testid={testID}>
+      <div style={scrollableContentStyle}>
+        {dataSliceToRender.map((item, virtualIndex) => {
+          const index = range.start + virtualIndex;
+          return (
+            <ItemContainerWithAnimatedStyle<T>
+              key={keyExtractor ? keyExtractor(index) : defaultKeyExtractor(index)}
+              renderItem={renderItem}
+              item={item}
+              index={index}
+              itemSize={itemSize}
+              vertical={vertical}
+              data={data}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
