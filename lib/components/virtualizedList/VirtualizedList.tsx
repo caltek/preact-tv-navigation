@@ -198,7 +198,22 @@ export function VirtualizedList<T>({
 
   // Web animation using CSS transitions with top/left positioning for legacy browser compatibility
   const newTranslationValue = allScrollOffsets[currentlyFocusedItemIndex];
-  
+  const animatedStyle = useMemo<JSX.CSSProperties>(() => ({
+    // Chrome 38 compatible transitions
+    WebkitTransitionDuration: `${scrollDuration}ms`,
+    transitionDuration: `${scrollDuration}ms`,
+    WebkitTransitionProperty: vertical ? 'top' : 'left',
+    transitionProperty: vertical ? 'top' : 'left',
+    WebkitTransitionTimingFunction: 'ease-out',
+    transitionTimingFunction: 'ease-out',
+    // Position properties
+    left: vertical ? 0 : newTranslationValue,
+    top: vertical ? newTranslationValue : 0,
+    // Chrome 38 specific fixes
+    WebkitTransform: 'translateZ(0)', // Force hardware acceleration
+    transform: 'translateZ(0)',
+  }), [newTranslationValue, scrollDuration, vertical]);
+
   /*
    * Use the actual index as the key to avoid duplicate key issues.
    * While recycling would be a performance optimization, it causes key collisions
@@ -209,56 +224,46 @@ export function VirtualizedList<T>({
     [],
   );
 
-  // Viewport: fills the parent container
-  const viewportStyle = useMemo<JSX.CSSProperties>(() => ({
-    ...style,
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-    overflow: 'hidden',
-  }), [style]);
+  // Legacy browser compatibility: use relative positioning instead of flex for absolute child positioning
+  const directionStyle = useMemo<JSX.CSSProperties>(
+    () => ({ 
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      // Chrome 38 specific fixes
+      WebkitTransform: 'translateZ(0)', // Force hardware acceleration
+      transform: 'translateZ(0)',
+    }),
+    [vertical, totalVirtualizedListSize],
+  );
 
-  // Scrollable content: sized to total virtual list size, can be translated
-  const scrollableContentStyle = useMemo<JSX.CSSProperties>(() => ({
-    position: 'relative',
-    width: vertical ? '100%' : `${totalVirtualizedListSize}px`,
-    height: vertical ? `${totalVirtualizedListSize}px` : '100%',
-    // Chrome 38 compatible transitions
-    WebkitTransitionDuration: `${scrollDuration}ms`,
-    transitionDuration: `${scrollDuration}ms`,
-    WebkitTransitionProperty: vertical ? 'top' : 'left',
-    transitionProperty: vertical ? 'top' : 'left',
-    WebkitTransitionTimingFunction: 'ease-out',
-    transitionTimingFunction: 'ease-out',
-    // Position properties for animation
-    left: vertical ? 0 : newTranslationValue,
-    top: vertical ? newTranslationValue : 0,
-    // Chrome 38 specific fixes
-    WebkitTransform: 'translateZ(0)', // Force hardware acceleration
-    transform: 'translateZ(0)',
-  }), [newTranslationValue, scrollDuration, vertical, totalVirtualizedListSize]);
+  // Dimension style is now handled in directionStyle for legacy browser compatibility
+
+  const containerStyle = useMemo<JSX.CSSProperties>(() => ({
+    ...style,
+    ...animatedStyle,
+    ...directionStyle,
+  }), [style, animatedStyle, directionStyle]);
 
   return (
     <div
-      style={viewportStyle}
+      style={containerStyle}
       data-testid={testID}
     >
-      <div style={scrollableContentStyle}>
-        {dataSliceToRender.map((item, virtualIndex) => {
-          const index = range.start + virtualIndex;
-          return (
-            <ItemContainerWithAnimatedStyle<T>
-              key={keyExtractor ? keyExtractor(index) : defaultKeyExtractor(index)}
-              renderItem={renderItem}
-              item={item}
-              index={index}
-              itemSize={itemSize}
-              vertical={vertical}
-              data={data}
-            />
-          );
-        })}
-      </div>
+      {dataSliceToRender.map((item, virtualIndex) => {
+        const index = range.start + virtualIndex;
+        return (
+          <ItemContainerWithAnimatedStyle<T>
+            key={keyExtractor ? keyExtractor(index) : defaultKeyExtractor(index)}
+            renderItem={renderItem}
+            item={item}
+            index={index}
+            itemSize={itemSize}
+            vertical={vertical}
+            data={data}
+          />
+        );
+      })}
     </div>
   );
 }
