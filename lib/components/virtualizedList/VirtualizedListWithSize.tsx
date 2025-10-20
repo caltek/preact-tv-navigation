@@ -61,6 +61,8 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
     // Fallback for older browsers - rely on initial measurement only
   }, [hasAlreadyRendered, isVertical]);
 
+  console.log('📏 VirtualizedListWithSize:', { hasAlreadyRendered, listSizeInPx });
+
   return (
     <div
       ref={containerRef}
@@ -80,8 +82,12 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
       }}
       data-testid={props.testID ? props.testID + '-size-giver' : undefined}
     >
-      {hasAlreadyRendered && listSizeInPx > 0 && (
+      {hasAlreadyRendered && listSizeInPx > 0 ? (
         <VirtualizedList {...props} listSizeInPx={listSizeInPx} />
+      ) : (
+        <div style={{ color: 'yellow', padding: '20px', backgroundColor: 'red' }}>
+          ⏳ Measuring... rendered: {String(hasAlreadyRendered)}, size: {listSizeInPx}px
+        </div>
       )}
     </div>
   );
