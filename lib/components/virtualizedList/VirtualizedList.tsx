@@ -105,10 +105,11 @@ function ItemContainerWithAnimatedStyle<T>({
 
   const style = useMemo<JSX.CSSProperties>(() => {
     const offset = computeOffset(item, index);
+    // Chrome 38 requires explicit 'px' suffix for positioning
     return {
       position: 'absolute',
-      left: vertical ? 0 : offset,
-      top: vertical ? offset : 0,
+      left: vertical ? '0px' : `${offset}px`,
+      top: vertical ? `${offset}px` : '0px',
       // Chrome 38 specific fixes
       WebkitTransform: 'translateZ(0)', // Force hardware acceleration
       transform: 'translateZ(0)',
@@ -216,7 +217,10 @@ export function VirtualizedList<T>({
     height: '100%',
     position: 'relative',
     overflow: 'hidden',
-  }), [style]);
+    // Chrome 38 specific fixes
+    minHeight: vertical ? 0 : '100%',
+    minWidth: vertical ? '100%' : 0,
+  }), [style, vertical]);
 
   // Scrollable content wrapper: sized to virtual list, can be animated
   const scrollableContentStyle = useMemo<JSX.CSSProperties>(() => {
@@ -238,6 +242,9 @@ export function VirtualizedList<T>({
       // Use transform for animation (better Chrome 38 support)
       WebkitTransform: translateValue,
       transform: translateValue,
+      // Chrome 38 specific fixes
+      minHeight: vertical ? 0 : '100%',
+      minWidth: vertical ? '100%' : 0,
     };
   }, [vertical, totalVirtualizedListSize, scrollDuration, newTranslationValue]);
 

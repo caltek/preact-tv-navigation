@@ -79,14 +79,26 @@ export function HorizontalVirtualizedListDemo() {
             )}
           </header>
 
-          {/* Content area */}
+          {/* Content area - Chrome 38 compatible */}
+          <div style={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            padding: "20px",
+            gap: "20px",
+            // Chrome 38 specific fixes
+            position: "relative",
+            minHeight: 0,
+            height: "100%",
+          }}>
           <SpatialNavigationView
             direction="vertical"
             style={{
-              flex: 1,
-              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
               gap: "20px",
-              padding: "20px",
+              height: "100%",
             }}>
             {/* Top bar - Dataset size selector */}
             <SpatialNavigationNode orientation="horizontal" isFocusable={false}>
@@ -95,6 +107,8 @@ export function HorizontalVirtualizedListDemo() {
                   display: "flex",
                   gap: "10px",
                   alignItems: "center",
+                  flexShrink: 0,
+                  minHeight: "60px",
                 }}>
                 <h3 style={{ margin: "0 20px 0 0", fontSize: "16px", color: "#E91E63" }}>
                   Dataset Size:
@@ -131,6 +145,10 @@ export function HorizontalVirtualizedListDemo() {
                   backgroundColor: "#111",
                   display: "flex",
                   flexDirection: "row",
+                  // Chrome 38 specific fixes
+                  minHeight: 0,
+                  height: "100%",
+                  position: "relative",
                 }}>
                 <SpatialNavigationVirtualizedList
                   data={currentData}
@@ -152,7 +170,7 @@ export function HorizontalVirtualizedListDemo() {
                       {({ isFocused }: FocusableNodeState) => (
                         <div
                           style={{
-                            height: "100%",
+                            height: "200px",
                             width: "180px",
                             margin: "10px 5px",
                             padding: "15px",
@@ -163,13 +181,22 @@ export function HorizontalVirtualizedListDemo() {
                             flexDirection: "column",
                             alignItems: "center",
                             justifyContent: "space-between",
+                            boxSizing: "border-box",
+                            // Chrome 38 compatible transitions
+                            WebkitTransition: "all 0.2s",
                             transition: "all 0.2s",
+                            WebkitTransform: isFocused
+                              ? "translateY(5px) scale(1.02)"
+                              : "translate(0)",
                             transform: isFocused
                               ? "translateY(5px) scale(1.02)"
                               : "translate(0)",
                             boxShadow: isFocused
                               ? "0 4px 15px rgba(233, 30, 99, 0.5)"
                               : "none",
+                            // Chrome 38 specific fixes
+                            WebkitBackfaceVisibility: "hidden",
+                            backfaceVisibility: "hidden",
                           }}>
                           <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
                             <div
@@ -215,6 +242,7 @@ export function HorizontalVirtualizedListDemo() {
               </main>
             </SpatialNavigationNode>
           </SpatialNavigationView>
+          </div>
 
           {/* Footer - fixed height */}
           <footer
