@@ -17,7 +17,7 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
   useEffect(() => {
     if (!hasAlreadyRendered && containerRef.current) {
       let retryCount = 0;
-      const maxRetries = 20;
+      const maxRetries = 30;
       const minAcceptableSize = 100; // Don't accept sizes smaller than this (likely incorrect)
       
       const measureSize = () => {
@@ -28,24 +28,34 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
         // For Chrome 38: sometimes initial measurements are incorrect due to flex layout timing
         // Keep retrying until we get a reasonable size
         if (size >= minAcceptableSize) {
-          console.log('✅ Accepted size:', size, 'px');
+          console.log('✅ Accepted size:', size, 'px on attempt', retryCount + 1);
           setListSizeInPx(size);
           setHasAlreadyRendered(true);
         } else if (retryCount < maxRetries) {
           retryCount++;
           console.log(`⏱️ Size too small (${size}px), retrying... (${retryCount}/${maxRetries})`);
-          // Chrome 38 fallback: retry with increasing delays
-          setTimeout(measureSize, retryCount * 20);
+          // Chrome 38 fallback: use requestAnimationFrame for next frame, then setTimeout
+          if (typeof requestAnimationFrame !== 'undefined') {
+            requestAnimationFrame(() => setTimeout(measureSize, retryCount * 50));
+          } else {
+            setTimeout(measureSize, retryCount * 50);
+          }
         } else {
           console.warn('⚠️ Using small size:', size, 'px after', maxRetries, 'attempts');
           // Use it anyway if we've exhausted retries
-          setListSizeInPx(size);
+          setListSizeInPx(size > 0 ? size : 500); // Fallback to 500px if still 0
           setHasAlreadyRendered(true);
         }
       };
       
-      // Start measurement after a small delay to let flex layout calculate
-      setTimeout(measureSize, 10);
+      // Use requestAnimationFrame to ensure DOM is painted before measuring
+      if (typeof requestAnimationFrame !== 'undefined') {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(measureSize);
+        });
+      } else {
+        setTimeout(measureSize, 50);
+      }
     }
   }, [hasAlreadyRendered, isVertical]);
 
@@ -93,12 +103,22 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
       }}
       data-testid={props.testID ? props.testID + '-size-giver' : undefined}
     >
-      {hasAlreadyRendered && listSizeInPx > 0 ? (
-        <VirtualizedList {...props} listSizeInPx={listSizeInPx} />
-      ) : (
-        <div style={{ color: 'yellow', padding: '20px', backgroundColor: 'red' }}>
-          ⏳ Measuring... rendered: {String(hasAlreadyRendered)}, size: {listSizeInPx}px
+      {/* Chrome 38 fix: visible element during measurement to force proper flex sizing */}
+      {!hasAlreadyRendered && (
+        <div style={{ 
+          width: '100%', 
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'rgba(255,255,255,0.3)',
+          fontSize: '12px'
+        }}>
+          Loading...
         </div>
+      )}
+      {hasAlreadyRendered && listSizeInPx > 0 && (
+        <VirtualizedList {...props} listSizeInPx={listSizeInPx} />
       )}
     </div>
   );
