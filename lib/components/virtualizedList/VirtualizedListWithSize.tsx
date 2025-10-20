@@ -17,24 +17,35 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
   useEffect(() => {
     if (!hasAlreadyRendered && containerRef.current) {
       let retryCount = 0;
-      const maxRetries = 10;
+      const maxRetries = 20;
+      const minAcceptableSize = 100; // Don't accept sizes smaller than this (likely incorrect)
       
       const measureSize = () => {
         if (!containerRef.current) return;
         
         const size = isVertical ? containerRef.current.offsetHeight : containerRef.current.offsetWidth;
         
-        if (size !== 0) {
+        // For Chrome 38: sometimes initial measurements are incorrect due to flex layout timing
+        // Keep retrying until we get a reasonable size
+        if (size >= minAcceptableSize) {
+          console.log('✅ Accepted size:', size, 'px');
           setListSizeInPx(size);
           setHasAlreadyRendered(true);
         } else if (retryCount < maxRetries) {
           retryCount++;
-          // Chrome 38 fallback: retry after layout is complete
-          setTimeout(measureSize, retryCount * 10);
+          console.log(`⏱️ Size too small (${size}px), retrying... (${retryCount}/${maxRetries})`);
+          // Chrome 38 fallback: retry with increasing delays
+          setTimeout(measureSize, retryCount * 20);
+        } else {
+          console.warn('⚠️ Using small size:', size, 'px after', maxRetries, 'attempts');
+          // Use it anyway if we've exhausted retries
+          setListSizeInPx(size);
+          setHasAlreadyRendered(true);
         }
       };
       
-      measureSize();
+      // Start measurement after a small delay to let flex layout calculate
+      setTimeout(measureSize, 10);
     }
   }, [hasAlreadyRendered, isVertical]);
 
