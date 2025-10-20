@@ -66,53 +66,35 @@ export const TV_REMOTE_KEYS = {
  */
 export const createKeyboardRemoteControl = () => {
   const subscriber = (callback: (direction: Direction | null) => void) => {
-    console.log('🎮 createKeyboardRemoteControl: Setting up keyboard listener');
-    
     const handleKeyDown = (event: KeyboardEvent) => {
-      console.log('⌨️ Keyboard event received', {
-        key: event.key,
-        code: event.code,
-        keyCode: event.keyCode,
-        target: event.target,
-      });
-
       switch (event.key) {
         case 'ArrowUp':
           event.preventDefault();
-          console.log('⬆️ ArrowUp pressed - calling callback with "up"');
           callback('up');
           break;
         case 'ArrowDown':
           event.preventDefault();
-          console.log('⬇️ ArrowDown pressed - calling callback with "down"');
           callback('down');
           break;
         case 'ArrowLeft':
           event.preventDefault();
-          console.log('⬅️ ArrowLeft pressed - calling callback with "left"');
           callback('left');
           break;
         case 'ArrowRight':
           event.preventDefault();
-          console.log('➡️ ArrowRight pressed - calling callback with "right"');
           callback('right');
           break;
         case 'Enter':
           event.preventDefault();
-          console.log('🎯 Enter pressed - calling callback with "enter"');
           callback('enter');
           break;
         default:
-          console.log('❓ Unhandled key pressed', { key: event.key });
           break;
       }
     };
 
     if (typeof window !== 'undefined') {
-      console.log('🎮 createKeyboardRemoteControl: Adding keydown listener to window');
       window.addEventListener('keydown', handleKeyDown);
-    } else {
-      console.warn('❌ createKeyboardRemoteControl: window is undefined, cannot add keydown listener');
     }
 
     return handleKeyDown;

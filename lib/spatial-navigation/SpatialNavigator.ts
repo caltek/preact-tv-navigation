@@ -27,18 +27,10 @@ export default class SpatialNavigator {
       const parent = params[1] && params[1].parent;
       const id = params[0];
 
-      console.log('🔧 SpatialNavigator: Registering node', {
-        id,
-        parent,
-        isFocusable: params[1]?.isFocusable,
-        hasParent: parent ? !!this.lrud.getNode(parent) : false,
-      });
-
       // If no parent is given, we are talking about a root node. We want to register it.
       // If a parent is given, we need the node to exist. Otherwise, we'll pass and queue the node for later registration.
       if (parent === undefined || this.lrud.getNode(parent)) {
         this.lrud.registerNode(...params);
-        console.log('✅ SpatialNavigator: Node registered successfully', { id, parent });
 
         // After we successfully register a node, we need to check whether it needs to grab the focus or not.
         this.handleQueuedFocus();
@@ -48,11 +40,6 @@ export default class SpatialNavigator {
         // ...and we do it recursively.
         const potentialNodesToRegister = this.registerMap[id];
         if (!potentialNodesToRegister || potentialNodesToRegister.length === 0) return;
-
-        console.log('🔄 SpatialNavigator: Processing queued nodes', {
-          id,
-          queuedCount: potentialNodesToRegister.length,
-        });
 
         potentialNodesToRegister.forEach((node) => {
           this.registerNode(...node);
@@ -75,15 +62,7 @@ export default class SpatialNavigator {
   }
 
   public async handleKeyDown(direction: Direction | null) {
-    console.log('⌨️ SpatialNavigator: Handling key event', {
-      direction,
-      hasRootNode: this.hasRootNode,
-      lrudRootNode: !!this.lrud.getRootNode(),
-      currentFocusNode: this.lrud.getCurrentFocusNode()?.id,
-    });
-
     if (!direction) {
-      console.log('❌ SpatialNavigator: No direction provided');
       return;
     }
     if (!this.hasRootNode) {
@@ -98,10 +77,6 @@ export default class SpatialNavigator {
     // Handle Enter/Select separately
     if (direction === 'enter') {
       const currentNode = this.lrud.getCurrentFocusNode();
-      console.log('🎯 SpatialNavigator: Enter key pressed', {
-        currentNode: currentNode?.id,
-        hasOnSelect: !!currentNode?.onSelect,
-      });
       if (currentNode && currentNode.onSelect) {
         currentNode.onSelect(currentNode);
       }
@@ -111,10 +86,6 @@ export default class SpatialNavigator {
     // Handle long enter
     if (direction === 'long_enter') {
       const currentNode = this.lrud.getCurrentFocusNode();
-      console.log('🎯 SpatialNavigator: Long enter key pressed', {
-        currentNode: currentNode?.id,
-        hasOnLongSelect: !!currentNode?.onLongSelect,
-      });
       if (currentNode && currentNode.onLongSelect) {
         currentNode.onLongSelect(currentNode);
       }
@@ -124,21 +95,11 @@ export default class SpatialNavigator {
     // Handle directional navigation
     if (direction) {
       const nodeBeforeMovement = this.lrud.getCurrentFocusNode();
-      console.log('🔄 SpatialNavigator: Directional navigation', {
-        direction,
-        nodeBeforeMovement: nodeBeforeMovement?.id,
-      });
       
       this.lrud.handleKeyEvent({ direction }, { forceFocus: true });
       const nodeAfterMovement = this.lrud.getCurrentFocusNode();
 
-      console.log('🔄 SpatialNavigator: After movement', {
-        nodeAfterMovement: nodeAfterMovement?.id,
-        movementOccurred: nodeBeforeMovement !== nodeAfterMovement,
-      });
-
       if (nodeBeforeMovement === nodeAfterMovement) {
-        console.log('⚠️ SpatialNavigator: No movement occurred, calling onDirectionHandledWithoutMovement');
         this.onDirectionHandledWithoutMovementRef.current(direction);
       }
     }
