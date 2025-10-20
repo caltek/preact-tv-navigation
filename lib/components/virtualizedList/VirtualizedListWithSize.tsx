@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import { VirtualizedList, type VirtualizedListProps } from './VirtualizedList';
 
+export interface ViewportPadding {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+}
+
 /**
  * This component has for only purpose to give to the VirtualizedList its actual
  * width and height. It is used to avoid the VirtualizedList to render with a width
@@ -8,8 +15,9 @@ import { VirtualizedList, type VirtualizedListProps } from './VirtualizedList';
  * The size is computed only once and then the VirtualizedList is rendered. This
  * doesn't support dynamic size changes.
  */
-export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 'listSizeInPx'>) {
-  const isVertical = props.orientation === 'vertical';
+export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 'listSizeInPx'> & { viewportPadding?: ViewportPadding }) {
+  const { viewportPadding, orientation, ...virtualizedListProps } = props;
+  const isVertical = orientation === 'vertical';
   const containerRef = useRef<HTMLDivElement>(null);
   const [listSizeInPx, setListSizeInPx] = useState<number>(0);
   const [hasAlreadyRendered, setHasAlreadyRendered] = useState<boolean>(false);
@@ -25,15 +33,12 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
         
         // Chrome 38 fallback: if flex layout fails, calculate from viewport
         if (size < minAcceptableSize && typeof window !== 'undefined') {
-          console.warn('⚠️ Flex layout returned small size:', size, 'px. Calculating from viewport...');
-          
           // Walk up the DOM tree to find a sized parent
           let parent = containerRef.current.parentElement;
           let attempts = 0;
           while (parent && attempts < 10) {
             const parentSize = isVertical ? parent.offsetHeight : parent.offsetWidth;
             if (parentSize >= minAcceptableSize) {
-              console.log('✅ Found sized parent:', parentSize, 'px');
               size = parentSize;
               break;
             }
@@ -41,19 +46,16 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
             attempts++;
           }
           
-          // Ultimate fallback: use viewport dimensions
+          // Ultimate fallback: use viewport dimensions with configurable padding
           if (size < minAcceptableSize) {
             if (isVertical) {
-              // Viewport height minus header (100px) and footer (50px) and padding (40px)
-              size = window.innerHeight - 190;
-              console.log('✅ Using viewport height:', window.innerHeight, '- 190px =', size, 'px');
+              const padding = (viewportPadding?.top || 0) + (viewportPadding?.bottom || 0);
+              size = window.innerHeight - (padding || 50);
             } else {
-              size = window.innerWidth;
-              console.log('✅ Using viewport width:', size, 'px');
+              const padding = (viewportPadding?.left || 0) + (viewportPadding?.right || 0);
+              size = window.innerWidth - (padding || 50);
             }
           }
-        } else {
-          console.log('✅ Measured size from container:', size, 'px');
         }
         
         setListSizeInPx(size);
@@ -87,8 +89,6 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
     }
     // Fallback for older browsers - rely on initial measurement only
   }, [hasAlreadyRendered, isVertical]);
-
-  console.log('📏 VirtualizedListWithSize:', { hasAlreadyRendered, listSizeInPx });
 
   return (
     <div
@@ -124,7 +124,7 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
         </div>
       )}
       {hasAlreadyRendered && listSizeInPx > 0 && (
-        <VirtualizedList {...props} listSizeInPx={listSizeInPx} />
+        <VirtualizedList {...virtualizedListProps} orientation={orientation} listSizeInPx={listSizeInPx} />
       )}
     </div>
   );

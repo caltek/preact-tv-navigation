@@ -27,12 +27,6 @@ export function GridDemo() {
     category: ['Movies', 'TV Shows', 'Sports', 'Music', 'Games'][i % 5],
   }));
 
-  console.log('🎯 GridDemo: Component render', {
-    selectedItem,
-    columns,
-    gridDataLength: gridData.length,
-  });
-
   return (
     <SpatialNavigationDeviceTypeProvider>
       <SpatialNavigationRoot isActive={true}>
@@ -133,6 +127,12 @@ export function GridDemo() {
                   scrollBehavior="center"
                   scrollDuration={200}
                   additionalRenderedRows={2}
+                  viewportPadding={{
+                    top: 100,  // header height
+                    bottom: 90, // footer height + padding
+                    left: 220,  // sidebar width + gap
+                    right: 40   // padding
+                  }}
                   renderItem={({ item, index }) => (
                     <SpatialNavigationNode
                       isFocusable

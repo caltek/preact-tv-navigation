@@ -19,6 +19,7 @@ type DatasetSize = "small" | "medium" | "large";
 export function VirtualizedListDemo() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [datasetSize, setDatasetSize] = useState<DatasetSize>("medium");
+  const [orientation, setOrientation] = useState<"vertical" | "horizontal">("vertical");
 
   // Generate datasets of different sizes
   const datasets = {
@@ -121,11 +122,29 @@ export function VirtualizedListDemo() {
                     onClick={() => setDatasetSize("large")}
                   />
                 </div>
+
+                <h3 style={{ margin: "20px 0 10px 0", fontSize: "16px", color: "#E91E63" }}>
+                  Orientation
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <DatasetButton
+                    label="Vertical"
+                    icon="↕️"
+                    isActive={orientation === "vertical"}
+                    onClick={() => setOrientation("vertical")}
+                  />
+                  <DatasetButton
+                    label="Horizontal"
+                    icon="↔️"
+                    isActive={orientation === "horizontal"}
+                    onClick={() => setOrientation("horizontal")}
+                  />
+                </div>
               </aside>
             </SpatialNavigationNode>
 
             {/* Main virtualized list */}
-            <SpatialNavigationNode orientation="vertical" isFocusable={false}>
+            <SpatialNavigationNode orientation={orientation} isFocusable={false}>
               <main
                 style={{
                   flex: 1,
@@ -133,14 +152,22 @@ export function VirtualizedListDemo() {
                   border: "2px solid #333",
                   borderRadius: "8px",
                   backgroundColor: "#111",
+                  display: "flex",
+                  flexDirection: orientation === "vertical" ? "column" : "row",
                 }}>
                 <SpatialNavigationVirtualizedList
                   data={currentData}
-                  itemSize={80}
-                  orientation="vertical"
+                  itemSize={orientation === "vertical" ? 80 : 200}
+                  orientation={orientation}
                   scrollBehavior="center"
                   scrollDuration={200}
                   additionalItemsRendered={3}
+                  viewportPadding={{
+                    top: 100,  // header height
+                    bottom: 90, // footer height + padding
+                    left: 240,  // sidebar width + gap
+                    right: 40   // padding
+                  }}
                   renderItem={({ item, index }) => (
                     <SpatialNavigationNode
                       isFocusable
@@ -148,19 +175,23 @@ export function VirtualizedListDemo() {
                       {({ isFocused }: FocusableNodeState) => (
                         <div
                           style={{
-                            height: "70px",
-                            margin: "5px 10px",
+                            height: orientation === "vertical" ? "70px" : "100%",
+                            width: orientation === "horizontal" ? "180px" : "auto",
+                            margin: orientation === "vertical" ? "5px 10px" : "10px 5px",
                             padding: "15px",
                             borderRadius: "8px",
                             backgroundColor: isFocused ? "#E91E63" : "#1a1a1a",
                             border: isFocused ? "3px solid white" : "3px solid #333",
                             display: "flex",
+                            flexDirection: orientation === "horizontal" ? "column" : "row",
                             alignItems: "center",
                             justifyContent: "space-between",
                             transition: "all 0.2s",
                             transform: isFocused
-                              ? "translateX(5px) scale(1.02)"
-                              : "translateX(0)",
+                              ? orientation === "vertical" 
+                                ? "translateX(5px) scale(1.02)"
+                                : "translateY(5px) scale(1.02)"
+                              : "translate(0)",
                             boxShadow: isFocused
                               ? "0 4px 15px rgba(233, 30, 99, 0.5)"
                               : "none",

@@ -50,43 +50,6 @@ export function SpatialNavigationScrollView({
     useSpatialNavigatorParentScroll();
   const scrollViewRef = useRef<HTMLDivElement>(null);
 
-  // Debug scroll container dimensions on mount and when content changes
-  useEffect(() => {
-    if (scrollViewRef.current) {
-      const container = scrollViewRef.current;
-      console.log('🔍 SpatialNavigationScrollView: Mounted with dimensions', {
-        horizontal,
-        clientHeight: container.clientHeight,
-        clientWidth: container.clientWidth,
-        scrollHeight: container.scrollHeight,
-        scrollWidth: container.scrollWidth,
-        scrollTop: container.scrollTop,
-        scrollLeft: container.scrollLeft,
-        offsetHeight: container.offsetHeight,
-        offsetWidth: container.offsetWidth,
-        isScrollable: container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth,
-      });
-
-      // Add scroll event listener for debugging
-      const handleScroll = () => {
-        console.log('📜 SpatialNavigationScrollView: Scroll event', {
-          scrollTop: container.scrollTop,
-          scrollLeft: container.scrollLeft,
-          scrollHeight: container.scrollHeight,
-          clientHeight: container.clientHeight,
-          maxScrollTop: container.scrollHeight - container.clientHeight,
-          isAtBottom: container.scrollTop >= (container.scrollHeight - container.clientHeight - 1),
-        });
-      };
-
-      container.addEventListener('scroll', handleScroll);
-      
-      return () => {
-        container.removeEventListener('scroll', handleScroll);
-      };
-    }
-  }, [horizontal, children]);
-
   // Legacy browser compatible smooth scroll using setTimeout only
   const smoothScroll = useCallback(
     (
@@ -100,17 +63,6 @@ export function SpatialNavigationScrollView({
       const deltaLeft = typeof targetLeft === 'number' ? targetLeft - startLeft : 0;
       const deltaTop = typeof targetTop === 'number' ? targetTop - startTop : 0;
       const startTime = Date.now();
-
-      console.log('🎬 SpatialNavigationScrollView: Starting smooth scroll', {
-        startPosition: { left: startLeft, top: startTop },
-        targetPosition: { left: targetLeft, top: targetTop },
-        delta: { left: deltaLeft, top: deltaTop },
-        duration: durationMs,
-        containerScrollSize: {
-          scrollWidth: container.scrollWidth,
-          scrollHeight: container.scrollHeight,
-        },
-      });
 
       // Chrome 38 compatible easing function
       const easeOutCubic = (t: number) => {
@@ -127,21 +79,11 @@ export function SpatialNavigationScrollView({
           const newLeft = Math.round(startLeft + deltaLeft * eased);
           // Chrome 38 compatible scroll setting
           container.scrollLeft = newLeft;
-          console.log('➡️ SpatialNavigationScrollView: Scroll step (horizontal)', {
-            progress: Math.round(progress * 100) + '%',
-            newLeft,
-            targetLeft,
-          });
         }
         if (typeof targetTop === 'number') {
           const newTop = Math.round(startTop + deltaTop * eased);
           // Chrome 38 compatible scroll setting
           container.scrollTop = newTop;
-          console.log('⬇️ SpatialNavigationScrollView: Scroll step (vertical)', {
-            progress: Math.round(progress * 100) + '%',
-            newTop,
-            targetTop,
-          });
         }
 
         if (progress < 1) {
@@ -149,13 +91,6 @@ export function SpatialNavigationScrollView({
           // Use 16ms for 60fps, but fallback to 20ms for very old browsers
           const timeout = typeof requestAnimationFrame !== 'undefined' ? 16 : 20;
           setTimeout(step, timeout);
-        } else {
-          console.log('✅ SpatialNavigationScrollView: Smooth scroll completed', {
-            finalPosition: {
-              left: container.scrollLeft,
-              top: container.scrollTop,
-            },
-          });
         }
       };
 
@@ -166,40 +101,6 @@ export function SpatialNavigationScrollView({
 
   const scrollToNode: ScrollToNodeCallback = useCallback(
     (newlyFocusedElementRef, additionalOffset = 0) => {
-      console.log('🔄 SpatialNavigationScrollView.scrollToNode called', {
-        horizontal,
-        offsetFromStart,
-        additionalOffset,
-        hasScrollViewRef: !!scrollViewRef.current,
-        hasElementRef: !!newlyFocusedElementRef,
-        usingSmoothScroll: true,
-      });
-
-      // Log scroll container dimensions for debugging
-      if (scrollViewRef.current) {
-        const container = scrollViewRef.current;
-        console.log('📏 SpatialNavigationScrollView: Container dimensions', {
-          horizontal,
-          clientHeight: container.clientHeight,
-          clientWidth: container.clientWidth,
-          scrollHeight: container.scrollHeight,
-          scrollWidth: container.scrollWidth,
-          scrollTop: container.scrollTop,
-          scrollLeft: container.scrollLeft,
-          offsetHeight: container.offsetHeight,
-          offsetWidth: container.offsetWidth,
-          canScrollHorizontally: container.scrollWidth > container.clientWidth,
-          canScrollVertically: container.scrollHeight > container.clientHeight,
-          computedStyle: {
-            width: getComputedStyle(container).width,
-            height: getComputedStyle(container).height,
-            overflowX: getComputedStyle(container).overflowX,
-            overflowY: getComputedStyle(container).overflowY,
-            display: getComputedStyle(container).display,
-          },
-        });
-      }
-
       if (!scrollViewRef.current) {
         console.warn('❌ SpatialNavigationScrollView: scrollViewRef.current is null');
         return;
@@ -218,12 +119,6 @@ export function SpatialNavigationScrollView({
         console.warn('❌ SpatialNavigationScrollView: element is null');
         return;
       }
-
-      console.log('✅ SpatialNavigationScrollView: Element found', {
-        elementTag: element.tagName,
-        elementId: element.id,
-        elementClass: element.className,
-      });
 
       // Calculate scroll position using the original smoothScroll approach
       const container = scrollViewRef.current;
@@ -248,15 +143,6 @@ export function SpatialNavigationScrollView({
         
         // Ensure we don't scroll beyond bounds
         targetLeft = Math.max(0, Math.min(targetLeft, container.scrollWidth - containerWidth));
-        
-        console.log('➡️ SpatialNavigationScrollView: Calculated horizontal scroll', {
-          elementLeft,
-          containerWidth,
-          elementWidth,
-          targetLeft,
-          offsetFromStart,
-          additionalOffset,
-        });
       } else {
         const elementTop = elementRect.top - containerRect.top + container.scrollTop;
         const containerHeight = container.clientHeight;
@@ -272,29 +158,12 @@ export function SpatialNavigationScrollView({
         
         // Ensure we don't scroll beyond bounds
         targetTop = Math.max(0, Math.min(targetTop, container.scrollHeight - containerHeight));
-        
-        console.log('⬇️ SpatialNavigationScrollView: Calculated vertical scroll', {
-          elementTop,
-          containerHeight,
-          elementHeight,
-          targetTop,
-          offsetFromStart,
-          additionalOffset,
-          containerScrollHeight: container.scrollHeight,
-        });
       }
 
       // Use smooth scroll for all browsers
-      console.log('🎬 SpatialNavigationScrollView: Starting smooth scroll', {
-        targetLeft,
-        targetTop,
-        duration: _scrollDuration,
-      });
-      
       smoothScroll(container, targetLeft, targetTop, _scrollDuration);
       
       // Propagate to parent scrollviews if nested
-      console.log('🔄 SpatialNavigationScrollView: Propagating to parent scrollviews');
       makeParentsScrollToNodeIfNeeded(newlyFocusedElementRef, additionalOffset);
     },
     [makeParentsScrollToNodeIfNeeded, horizontal, offsetFromStart, _scrollDuration, smoothScroll],

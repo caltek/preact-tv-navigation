@@ -173,11 +173,9 @@ if (!Math.sign) {
   };
 }
 
-// Console logging helper for Chrome 38 debugging
-export const chrome38Log = (message: string, data?: any) => {
-  if (typeof console !== 'undefined' && console.log) {
-    console.log(`[Chrome38] ${message}`, data || '');
-  }
+// Console logging helper for Chrome 38 debugging (disabled for production)
+export const chrome38Log = (_message: string, _data?: any) => {
+  // No-op in production
 };
 
 // Feature detection for Chrome 38

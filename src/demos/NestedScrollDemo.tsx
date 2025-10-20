@@ -24,12 +24,6 @@ export function NestedScrollDemo() {
     itemCount: 10 + Math.floor(Math.random() * 6), // 10-15 items
   }));
 
-  console.log('🎯 NestedScrollDemo: Component render', {
-    selectedItem,
-    rowsCount: rows.length,
-    totalItems: rows.reduce((sum, row) => sum + row.itemCount, 0),
-  });
-
   return (
     <SpatialNavigationDeviceTypeProvider>
       <SpatialNavigationRoot isActive={true}>

@@ -9,6 +9,7 @@ import type {
 import { useSpatialNavigator } from '../../context/SpatialNavigatorContext';
 import { ParentIdContext, useParentId } from '../../context/ParentIdContext';
 import { convertToGrid, type GridRowType } from './helpers/convertToGrid';
+import type { ViewportPadding } from '../virtualizedList/VirtualizedListWithSize';
 
 type SpatialNavigationVirtualizedGridProps<T> = Pick<
   SpatialNavigationVirtualizedListWithScrollProps<T>,
@@ -33,6 +34,8 @@ type SpatialNavigationVirtualizedGridProps<T> = Pick<
     numberOfColumns: number;
     /** Used to modify every row style */
     rowContainerStyle?: JSX.CSSProperties;
+    /** Viewport padding used for Chrome 38 fallback size calculation */
+    viewportPadding?: ViewportPadding;
   };
 
 export interface SpatialNavigationVirtualizedGridRef {

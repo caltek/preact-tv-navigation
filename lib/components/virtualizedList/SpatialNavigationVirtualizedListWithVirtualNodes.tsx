@@ -8,7 +8,7 @@ import { updateVirtualNodeRegistration } from './helpers/updateVirtualNodeRegist
 import { useCachedValues } from './hooks/useCachedValues';
 import type { NodeOrientation } from '../../types';
 import { invertOrientation } from '../virtualizedGrid/helpers/convertToGrid';
-import { VirtualizedListWithSize } from './VirtualizedListWithSize';
+import { VirtualizedListWithSize, type ViewportPadding } from './VirtualizedListWithSize';
 
 const useCreateVirtualParentsIds = (parentId: string) =>
   useCachedValues(() => uniqueId(`${parentId}_virtual_`));
@@ -140,6 +140,7 @@ export type SpatialNavigationVirtualizedListWithVirtualNodesProps<T> = Omit<
   'listSizeInPx'
 > & {
   isGrid?: boolean;
+  viewportPadding?: ViewportPadding;
 };
 
 export type SpatialNavigationVirtualizedListWithVirtualNodesRef = {

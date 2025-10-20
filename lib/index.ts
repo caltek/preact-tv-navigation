@@ -97,6 +97,7 @@ export type { DeviceType, DeviceTypeContextValue } from './context/DeviceTypeCon
 export type { DefaultFocusProps } from './context/DefaultFocusContext';
 export type { RemoteControlConfiguration } from './utils/remoteControl';
 export type { VirtualizedListProps } from './components/virtualizedList/VirtualizedList';
+export type { ViewportPadding } from './components/virtualizedList/VirtualizedListWithSize';
 export type { 
   SpatialNavigationVirtualizedListRef,
   SpatialNavigationVirtualizedListWithScrollProps,
