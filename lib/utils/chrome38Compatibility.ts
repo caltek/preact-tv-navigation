@@ -223,5 +223,3 @@ export const getCompatibleScrollBehavior = () => {
   }
   return {};
 };
-
-console.log('🔧 Chrome 38 compatibility polyfills loaded');

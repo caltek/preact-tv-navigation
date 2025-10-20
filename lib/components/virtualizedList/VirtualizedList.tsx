@@ -199,6 +199,16 @@ export function VirtualizedList<T>({
   // Web animation using CSS transitions with top/left positioning for legacy browser compatibility
   const newTranslationValue = allScrollOffsets[currentlyFocusedItemIndex];
 
+  console.log('🎯 VirtualizedList scroll values:', {
+    currentlyFocusedItemIndex,
+    newTranslationValue,
+    scrollBehavior,
+    listSizeInPx,
+    numberOfItemsVisibleOnScreen,
+    totalVirtualizedListSize,
+    itemSize: typeof itemSize === 'number' ? itemSize : 'function',
+  });
+
   /*
    * Use the actual index as the key to avoid duplicate key issues.
    * While recycling would be a performance optimization, it causes key collisions
