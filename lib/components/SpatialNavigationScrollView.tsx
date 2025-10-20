@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'preact/hooks';
+import { useCallback, useRef } from 'preact/hooks';
 import type { ComponentChildren, JSX } from 'preact';
 import {
   ParentScrollContext as SpatialNavigatorParentScrollContext,
