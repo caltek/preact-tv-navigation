@@ -12,12 +12,12 @@ import {
 type DatasetSize = "small" | "medium" | "large";
 
 /**
- * Demo: Vertical Virtualized List
- * - Efficiently renders thousands of items vertically
+ * Demo: Horizontal Virtualized List
+ * - Efficiently renders thousands of items horizontally
  * - Only visible items are in the DOM
- * - Smooth vertical scrolling with centered items
+ * - Smooth horizontal scrolling with centered items
  */
-export function VirtualizedListDemo() {
+export function HorizontalVirtualizedListDemo() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [datasetSize, setDatasetSize] = useState<DatasetSize>("medium");
 
@@ -67,10 +67,10 @@ export function VirtualizedListDemo() {
               flexShrink: 0,
             }}>
             <h1 style={{ margin: "0 0 5px 0", fontSize: "28px" }}>
-              Vertical Virtualized List Demo
+              Horizontal Virtualized List Demo
             </h1>
             <p style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#888" }}>
-              {currentData.length.toLocaleString()} items • Smooth vertical scrolling with centered items
+              {currentData.length.toLocaleString()} items • Scroll horizontally with centered items
             </p>
             {selectedItem && (
               <p style={{ margin: "10px 0 0 0", color: "#FFD700", fontSize: "14px" }}>
@@ -81,51 +81,47 @@ export function VirtualizedListDemo() {
 
           {/* Content area */}
           <SpatialNavigationView
-            direction="horizontal"
+            direction="vertical"
             style={{
               flex: 1,
               overflow: "hidden",
               gap: "20px",
               padding: "20px",
             }}>
-            {/* Sidebar - Dataset size selector */}
-            <SpatialNavigationNode orientation="vertical" isFocusable={false}>
-              <aside
+            {/* Top bar - Dataset size selector */}
+            <SpatialNavigationNode orientation="horizontal" isFocusable={false}>
+              <div
                 style={{
-                  width: "200px",
-                  flexShrink: 0,
                   display: "flex",
-                  flexDirection: "column",
                   gap: "10px",
+                  alignItems: "center",
                 }}>
-                <h3 style={{ margin: "0 0 10px 0", fontSize: "16px", color: "#E91E63" }}>
-                  Dataset Size
+                <h3 style={{ margin: "0 20px 0 0", fontSize: "16px", color: "#E91E63" }}>
+                  Dataset Size:
                 </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <DatasetButton
-                    label="100 Items"
-                    icon="📝"
-                    isActive={datasetSize === "small"}
-                    onClick={() => setDatasetSize("small")}
-                  />
-                  <DatasetButton
-                    label="1,000 Items"
-                    icon="📋"
-                    isActive={datasetSize === "medium"}
-                    onClick={() => setDatasetSize("medium")}
-                  />
-                  <DatasetButton
-                    label="10,000 Items"
-                    icon="📚"
-                    isActive={datasetSize === "large"}
-                    onClick={() => setDatasetSize("large")}
-                  />
-                </div>
-              </aside>
+                <DatasetButton
+                  label="100 Items"
+                  icon="📝"
+                  isActive={datasetSize === "small"}
+                  onClick={() => setDatasetSize("small")}
+                />
+                <DatasetButton
+                  label="1,000 Items"
+                  icon="📋"
+                  isActive={datasetSize === "medium"}
+                  onClick={() => setDatasetSize("medium")}
+                />
+                <DatasetButton
+                  label="10,000 Items"
+                  icon="📚"
+                  isActive={datasetSize === "large"}
+                  onClick={() => setDatasetSize("large")}
+                />
+              </div>
             </SpatialNavigationNode>
 
-            {/* Main virtualized list */}
-            <SpatialNavigationNode orientation="vertical" isFocusable={false}>
+            {/* Main horizontal virtualized list */}
+            <SpatialNavigationNode orientation="horizontal" isFocusable={false}>
               <main
                 style={{
                   flex: 1,
@@ -134,19 +130,19 @@ export function VirtualizedListDemo() {
                   borderRadius: "8px",
                   backgroundColor: "#111",
                   display: "flex",
-                  flexDirection: "column",
+                  flexDirection: "row",
                 }}>
                 <SpatialNavigationVirtualizedList
                   data={currentData}
-                  itemSize={80}
-                  orientation="vertical"
+                  itemSize={200}
+                  orientation="horizontal"
                   scrollBehavior="center"
                   scrollDuration={200}
                   additionalItemsRendered={3}
                   viewportPadding={{
                     top: 100,  // header height
                     bottom: 90, // footer height + padding
-                    left: 240,  // sidebar width + gap
+                    left: 40,  // padding
                     right: 40   // padding
                   }}
                   renderItem={({ item, index }) => (
@@ -156,31 +152,31 @@ export function VirtualizedListDemo() {
                       {({ isFocused }: FocusableNodeState) => (
                         <div
                           style={{
-                            height: "70px",
-                            width: "auto",
-                            margin: "5px 10px",
+                            height: "100%",
+                            width: "180px",
+                            margin: "10px 5px",
                             padding: "15px",
                             borderRadius: "8px",
                             backgroundColor: isFocused ? "#E91E63" : "#1a1a1a",
                             border: isFocused ? "3px solid white" : "3px solid #333",
                             display: "flex",
-                            flexDirection: "row",
+                            flexDirection: "column",
                             alignItems: "center",
                             justifyContent: "space-between",
                             transition: "all 0.2s",
                             transform: isFocused
-                              ? "translateX(5px) scale(1.02)"
+                              ? "translateY(5px) scale(1.02)"
                               : "translate(0)",
                             boxShadow: isFocused
                               ? "0 4px 15px rgba(233, 30, 99, 0.5)"
                               : "none",
                           }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
                             <div
                               style={{
                                 fontSize: "16px",
                                 fontWeight: isFocused ? "bold" : "normal",
-                                marginBottom: "4px",
+                                marginBottom: "8px",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
@@ -207,8 +203,7 @@ export function VirtualizedListDemo() {
                               borderRadius: "4px",
                               fontSize: "12px",
                               fontWeight: "bold",
-                              flexShrink: 0,
-                              marginLeft: "10px",
+                              marginTop: "10px",
                             }}>
                             #{index + 1}
                           </div>
@@ -231,7 +226,7 @@ export function VirtualizedListDemo() {
               textAlign: "center",
               flexShrink: 0,
             }}>
-            ↕️ Navigate vertically through items • ↔️ Switch between sidebar and list • Press Enter to select
+            ↔️ Navigate horizontally through items • ↕️ Switch between controls and list • Press Enter to select
           </footer>
         </div>
       </SpatialNavigationRoot>
@@ -255,7 +250,7 @@ function DatasetButton({
       {({ isFocused }: FocusableNodeState) => (
         <div
           style={{
-            padding: "15px",
+            padding: "12px 20px",
             borderRadius: "8px",
             backgroundColor: isActive ? "#9C27B0" : isFocused ? "#E91E63" : "#1a1a1a",
             border: isFocused ? "3px solid white" : "3px solid #333",
@@ -264,8 +259,9 @@ function DatasetButton({
             gap: "10px",
             transition: "all 0.2s",
             cursor: "pointer",
+            whiteSpace: "nowrap",
           }}>
-          <div style={{ fontSize: "24px" }}>{icon}</div>
+          <div style={{ fontSize: "20px" }}>{icon}</div>
           <div
             style={{
               fontSize: "14px",
@@ -276,8 +272,7 @@ function DatasetButton({
           {isActive && (
             <div
               style={{
-                marginLeft: "auto",
-                fontSize: "16px",
+                fontSize: "14px",
               }}>
               ✓
             </div>
@@ -287,3 +282,4 @@ function DatasetButton({
     </SpatialNavigationNode>
   );
 }
+

@@ -10,9 +10,10 @@ import {
 import './app.css';
 import { NestedScrollDemo } from './demos/NestedScrollDemo';
 import { VirtualizedListDemo as VirtualizedListDemoComponent } from './demos/VirtualizedListDemo';
+import { HorizontalVirtualizedListDemo as HorizontalVirtualizedListDemoComponent } from './demos/HorizontalVirtualizedListDemo';
 import { GridDemo as GridDemoComponent } from './demos/GridDemo';
 
-type DemoId = 'basic' | 'scrollview' | 'virtualized-list' | 'grid';
+type DemoId = 'basic' | 'scrollview' | 'virtualized-list' | 'horizontal-list' | 'grid';
 
 export function App() {
   const [activeDemo, setActiveDemo] = useState<DemoId | null>(null);
@@ -52,6 +53,7 @@ export function App() {
         {activeDemo === 'basic' && <BasicNavigationDemo />}
         {activeDemo === 'scrollview' && <NestedScrollDemo />}
         {activeDemo === 'virtualized-list' && <VirtualizedListDemoComponent />}
+        {activeDemo === 'horizontal-list' && <HorizontalVirtualizedListDemoComponent />}
         {activeDemo === 'grid' && <GridDemoComponent />}
       </div>
     );
@@ -109,10 +111,16 @@ export function App() {
               onClick={() => setActiveDemo('scrollview')}
             />
             <DemoButton
-              title="Virtualized List"
-              description="Efficient rendering of thousands of items"
+              title="Vertical Virtualized List"
+              description="Efficient vertical scrolling of thousands of items"
               icon="⚡"
               onClick={() => setActiveDemo('virtualized-list')}
+            />
+            <DemoButton
+              title="Horizontal Virtualized List"
+              description="Efficient horizontal scrolling of thousands of items"
+              icon="↔️"
+              onClick={() => setActiveDemo('horizontal-list')}
             />
             <DemoButton
               title="Grid Layout"
