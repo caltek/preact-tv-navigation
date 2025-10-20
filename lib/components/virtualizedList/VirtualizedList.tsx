@@ -252,8 +252,6 @@ export function VirtualizedList<T>({
       // Chrome 38 specific fixes
       WebkitTransform: 'translateZ(0)', // Force hardware acceleration
       transform: 'translateZ(0)',
-      // Ensure proper overflow handling
-      overflow: 'hidden',
     }),
     [vertical, totalVirtualizedListSize],
   );
@@ -264,7 +262,6 @@ export function VirtualizedList<T>({
     ...style,
     ...animatedStyle,
     ...directionStyle,
-    flex: 1,
   }), [style, animatedStyle, directionStyle]);
 
   return (
@@ -272,22 +269,20 @@ export function VirtualizedList<T>({
       style={containerStyle}
       data-testid={testID}
     >
-      <div>
-        {dataSliceToRender.map((item, virtualIndex) => {
-          const index = range.start + virtualIndex;
-          return (
-            <ItemContainerWithAnimatedStyle<T>
-              key={keyExtractor ? keyExtractor(index) : defaultKeyExtractor(index)}
-              renderItem={renderItem}
-              item={item}
-              index={index}
-              itemSize={itemSize}
-              vertical={vertical}
-              data={data}
-            />
-          );
-        })}
-      </div>
+      {dataSliceToRender.map((item, virtualIndex) => {
+        const index = range.start + virtualIndex;
+        return (
+          <ItemContainerWithAnimatedStyle<T>
+            key={keyExtractor ? keyExtractor(index) : defaultKeyExtractor(index)}
+            renderItem={renderItem}
+            item={item}
+            index={index}
+            itemSize={itemSize}
+            vertical={vertical}
+            data={data}
+          />
+        );
+      })}
     </div>
   );
 }
