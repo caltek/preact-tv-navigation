@@ -14,19 +14,7 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
   const [listSizeInPx, setListSizeInPx] = useState<number>(0);
   const [hasAlreadyRendered, setHasAlreadyRendered] = useState<boolean>(false);
 
-  console.log('🔍 VirtualizedListWithSize: State', {
-    hasAlreadyRendered,
-    listSizeInPx,
-    isVertical,
-    hasRef: !!containerRef.current,
-  });
-
   useEffect(() => {
-    console.log('🔍 VirtualizedListWithSize: Effect 1 running', {
-      hasAlreadyRendered,
-      hasRef: !!containerRef.current,
-    });
-    
     if (!hasAlreadyRendered && containerRef.current) {
       let retryCount = 0;
       const maxRetries = 10;
@@ -35,25 +23,14 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
         if (!containerRef.current) return;
         
         const size = isVertical ? containerRef.current.offsetHeight : containerRef.current.offsetWidth;
-        console.log('🔍 VirtualizedListWithSize: Measured size (attempt ' + (retryCount + 1) + ')', {
-          size,
-          offsetHeight: containerRef.current.offsetHeight,
-          offsetWidth: containerRef.current.offsetWidth,
-          clientHeight: containerRef.current.clientHeight,
-          clientWidth: containerRef.current.clientWidth,
-        });
         
         if (size !== 0) {
-          console.log('✅ VirtualizedListWithSize: Setting size', size);
           setListSizeInPx(size);
           setHasAlreadyRendered(true);
         } else if (retryCount < maxRetries) {
-          console.warn('⚠️ VirtualizedListWithSize: Size is 0, retrying... (attempt ' + (retryCount + 1) + '/' + maxRetries + ')');
           retryCount++;
           // Chrome 38 fallback: retry after layout is complete
           setTimeout(measureSize, retryCount * 10);
-        } else {
-          console.error('❌ VirtualizedListWithSize: Failed to measure size after ' + maxRetries + ' attempts');
         }
       };
       
@@ -84,12 +61,6 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
     // Fallback for older browsers - rely on initial measurement only
   }, [hasAlreadyRendered, isVertical]);
 
-  console.log('🔍 VirtualizedListWithSize: Render decision', {
-    hasAlreadyRendered,
-    listSizeInPx,
-    willRender: hasAlreadyRendered && listSizeInPx > 0,
-  });
-
   return (
     <div
       ref={containerRef}
@@ -109,12 +80,8 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
       }}
       data-testid={props.testID ? props.testID + '-size-giver' : undefined}
     >
-      {hasAlreadyRendered && listSizeInPx > 0 ? (
+      {hasAlreadyRendered && listSizeInPx > 0 && (
         <VirtualizedList {...props} listSizeInPx={listSizeInPx} />
-      ) : (
-        <div style={{ color: 'red', padding: '20px' }}>
-          Loading list... (size: {listSizeInPx}, rendered: {String(hasAlreadyRendered)})
-        </div>
       )}
     </div>
   );
