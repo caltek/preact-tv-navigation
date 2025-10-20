@@ -16,46 +16,52 @@ export function VirtualizedListWithSize<T>(props: Omit<VirtualizedListProps<T>, 
 
   useEffect(() => {
     if (!hasAlreadyRendered && containerRef.current) {
-      let retryCount = 0;
-      const maxRetries = 30;
-      const minAcceptableSize = 100; // Don't accept sizes smaller than this (likely incorrect)
+      const minAcceptableSize = 100;
       
       const measureSize = () => {
         if (!containerRef.current) return;
         
-        const size = isVertical ? containerRef.current.offsetHeight : containerRef.current.offsetWidth;
+        let size = isVertical ? containerRef.current.offsetHeight : containerRef.current.offsetWidth;
         
-        // For Chrome 38: sometimes initial measurements are incorrect due to flex layout timing
-        // Keep retrying until we get a reasonable size
-        if (size >= minAcceptableSize) {
-          console.log('✅ Accepted size:', size, 'px on attempt', retryCount + 1);
-          setListSizeInPx(size);
-          setHasAlreadyRendered(true);
-        } else if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`⏱️ Size too small (${size}px), retrying... (${retryCount}/${maxRetries})`);
-          // Chrome 38 fallback: use requestAnimationFrame for next frame, then setTimeout
-          if (typeof requestAnimationFrame !== 'undefined') {
-            requestAnimationFrame(() => setTimeout(measureSize, retryCount * 50));
-          } else {
-            setTimeout(measureSize, retryCount * 50);
+        // Chrome 38 fallback: if flex layout fails, calculate from viewport
+        if (size < minAcceptableSize && typeof window !== 'undefined') {
+          console.warn('⚠️ Flex layout returned small size:', size, 'px. Calculating from viewport...');
+          
+          // Walk up the DOM tree to find a sized parent
+          let parent = containerRef.current.parentElement;
+          let attempts = 0;
+          while (parent && attempts < 10) {
+            const parentSize = isVertical ? parent.offsetHeight : parent.offsetWidth;
+            if (parentSize >= minAcceptableSize) {
+              console.log('✅ Found sized parent:', parentSize, 'px');
+              size = parentSize;
+              break;
+            }
+            parent = parent.parentElement;
+            attempts++;
+          }
+          
+          // Ultimate fallback: use viewport dimensions
+          if (size < minAcceptableSize) {
+            if (isVertical) {
+              // Viewport height minus header (100px) and footer (50px) and padding (40px)
+              size = window.innerHeight - 190;
+              console.log('✅ Using viewport height:', window.innerHeight, '- 190px =', size, 'px');
+            } else {
+              size = window.innerWidth;
+              console.log('✅ Using viewport width:', size, 'px');
+            }
           }
         } else {
-          console.warn('⚠️ Using small size:', size, 'px after', maxRetries, 'attempts');
-          // Use it anyway if we've exhausted retries
-          setListSizeInPx(size > 0 ? size : 500); // Fallback to 500px if still 0
-          setHasAlreadyRendered(true);
+          console.log('✅ Measured size from container:', size, 'px');
         }
+        
+        setListSizeInPx(size);
+        setHasAlreadyRendered(true);
       };
       
-      // Use requestAnimationFrame to ensure DOM is painted before measuring
-      if (typeof requestAnimationFrame !== 'undefined') {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(measureSize);
-        });
-      } else {
-        setTimeout(measureSize, 50);
-      }
+      // Small delay to let DOM settle
+      setTimeout(measureSize, 100);
     }
   }, [hasAlreadyRendered, isVertical]);
 
