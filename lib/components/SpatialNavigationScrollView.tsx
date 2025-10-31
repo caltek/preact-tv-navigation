@@ -204,7 +204,7 @@ export function SpatialNavigationScrollView({
   return (
     <SpatialNavigatorParentScrollContext.Provider value={scrollToNode}>
       <div style={containerStyle} data-testid={testID}>
-        // Ascending arrow (top/left)
+        {/* Ascending arrow (top/left) */}
         {ascendingArrow && (
           <div
             style={{
@@ -217,13 +217,11 @@ export function SpatialNavigationScrollView({
             {ascendingArrow}
           </div>
         )}
-
-        // Scroll container
+        {/* Scroll container */}
         <div ref={scrollViewRef} style={scrollViewStyle}>
           {children}
         </div>
-
-        // Descending arrow (bottom/right)
+        {/* Descending arrow (bottom/right) */}
         {descendingArrow && (
           <div
             style={{
